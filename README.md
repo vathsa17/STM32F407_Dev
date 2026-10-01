@@ -51,13 +51,13 @@ STM32F407_Dev/
 - ST-LINK drivers, OpenOCD or STM32CubeProgrammer
 - Serial terminal (PuTTY, minicom, etc.) at **9600 8N1** 
 
-### Build and Flash
-```bash
-# Example, adjust to your setup
-make
-openocd -f interface/stlink.cfg -f target/stm32f4x.cfg \
-        -c "program build/firmware.elf verify reset exit"
-```
+
+## External Hardwares
+### USB to TTL RS232 Adapter
+A Secondary USB to TTL RS232 Adapter is necessary if you are trying to establish connection between your PC and USART/UART communication driver from STM32F407G Board 
+
+### CAN Rx/Tx Transiver and USB-CAN Adapter
+The bxCAN peripheral on board can only facilitate upto DataLinkLayer. You would need a CAN transceiver to drive the CANH and CANL bus. Aditionally, a secondary USB CAN Interface which can act as second Node.
 
 ### Running
 1. Connect the board over USB (ST-LINK).
@@ -100,3 +100,9 @@ Planned scope:
 - [Cortex-M4 Generic User Guide](https://developer.arm.com/documentation/dui0553/latest/)
 
 
+
+## About
+
+I'm Shrivathsa, a senior embedded software engineer with about 9 years of experience in automotive systems (AUTOSAR Classic, SOME/IP, UDS/DoIP diagnostics, embedded Linux). This repo is where I work with STM32 bare-metal peripherals hands-on, from GPIO and UART to interrupts and CAN, to build intuition for what sits underneath the stacks I use professionally.
+
+- LinkedIn: https://www.linkedin.com/in/shrivathsa-udupa/
