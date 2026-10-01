@@ -6,13 +6,12 @@ GPIO_PinConf_t UserButton_Conf;
 
 GPIO_PinConf_t IRSensor_Conf;
 
+GPIO_PinConf_t CAN_TX;
+GPIO_PinConf_t CAN_RX;
+
 USART_Conf_t USART2_Conf;
 
 volatile uint8_t motion_detected = 0;
-/**
- * @brief Function to Initilize the USART
- * 
- */
 void USART2_Init(void)
 {
 	GPIO_PinConf_t USART_Pin;
@@ -38,13 +37,10 @@ void USART2_Init(void)
 	USART_Init(USART2,USART2_Conf);
 
 
+
+
+
 }
-
-
-/**
- * @brief Function to Initlize the LED GPIO
- * 
- */
 void BlueLED_Init()
 {
 	GPIO_PinConf_t GPIOD_PinConf = {GPIO_PIN_NUM_15,GPIO_MODE_OUTPUT,GPIO_OutType_PP,GPIO_OutSpeed_Low,GPIO_NO_PUPD};
@@ -73,10 +69,28 @@ void UserButton_Init()
 
 }
 
-/**
- * @brief Function to Initilize the IR Sensor on PA1
- * 
- */
+void CAN_GPIO_Init()
+{
+	CAN_TX.GPIO_PinNumber=GPIO_PIN_NUM_12;
+	CAN_TX.GPIO_PinMode=GPIO_MODE_ALT;
+	CAN_TX.GPIO_OutType=GPIO_OutType_PP;
+	CAN_TX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
+	CAN_TX.GPIO_PUPD=GPIO_NO_PUPD;
+	CAN_TX.GPIO_AltFnc=GPIO_AF9;
+
+
+	CAN_RX.GPIO_PinNumber=GPIO_PIN_NUM_11;
+	CAN_RX.GPIO_PinMode=GPIO_MODE_ALT;
+	CAN_RX.GPIO_OutType=GPIO_OutType_PP;
+	CAN_RX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
+	CAN_RX.GPIO_PUPD=GPIO_NO_PUPD;
+	CAN_RX.GPIO_AltFnc=GPIO_AF9;
+
+	GPIOA_CLK_ENB();
+	GPIO_Init(GPIOA,CAN_TX);
+	GPIO_Init(GPIOA,CAN_RX);
+
+}
 
 void IRSensorInit()
 {
@@ -105,12 +119,6 @@ void simDelay(void)
 
 }
 
-
-/**
- * @brief Function to create the Delay using SysTick
- * 
- * @param ms The Desired Delay
- */
 void delay_ms(uint32_t ms)
 {
 	SYSTICK_LOAD= 16000 - 1;     // 1 ms @ 16 MHz
@@ -134,20 +142,16 @@ void delay_ms(uint32_t ms)
 
 int main(void)
 {
-	/* Initilize the IR Motion Sensor*/
 	IRSensorInit();
-
-	/*Initilize the Blue LED */
 	BlueLED_Init();
 
 	while(1)
 	{
 
-		/*The Motion Detected is triggered from the ISR as soon as the Motion is detected*/
 		if(motion_detected==1)
 		{
 			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
-			delay_ms(5000); //Wait for 5 Seconds
+			delay_ms(5000);
 			motion_detected=0;
 			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
 		}
@@ -155,10 +159,6 @@ int main(void)
 }
 
 
-/**
- * @brief ISR To Handle the Interrupt from IR Motion Detector
- * 
- */
 void EXTI1_IRQHandler(void)
 {
 

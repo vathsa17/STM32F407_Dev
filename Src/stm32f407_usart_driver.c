@@ -5,14 +5,6 @@
  *      Author: udupas
  */
 #include "stm32f407xx.h"
-
-/**
- * @brief Function to transmit the USART Frames
- * 
- * @param USARTx The Selected USART Channel
- * @param Mess The Message
- * @param MessSize The Message Lenght
- */
 void USART_Transmit(USART_RegDef_t * USARTx, uint8_t * Mess, uint8_t MessSize)
 {
 	uint8_t *pDataBit;
@@ -21,14 +13,14 @@ void USART_Transmit(USART_RegDef_t * USARTx, uint8_t * Mess, uint8_t MessSize)
 
 	TxCounter=MessSize;
 
-	/*If the Wordlength is 9B and Parity is None*/
+
 	if((((USARTx->CR1>>12U)&0x01) == USART_WORDLENGTH_9B) \
 			&& (((USARTx->CR1>>9U)&0x01) == USART_PARITY_NONE))
 	{
 		pDataBit=NULL;
 		pData16Bit = (uint16_t *) Mess;
 	}
-	else /*Else data is 8B*/
+	else
 	{
 		pDataBit=Mess;
 		pData16Bit=NULL;
@@ -61,13 +53,6 @@ void USART_Transmit(USART_RegDef_t * USARTx, uint8_t * Mess, uint8_t MessSize)
 		}
 }
 
-/**
- * @brief Function to recieve the USART Frames
- * 
- * @param USARTx Desired USART Channel
- * @param Mess Message
- * @param MessSize Message Size
- */
 
 void USART_Recieve(USART_RegDef_t * USARTx, uint8_t * Mess, uint8_t MessSize)
 {

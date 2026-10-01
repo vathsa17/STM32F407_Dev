@@ -9,7 +9,6 @@
 #define CORTEXM4_H_
 #include <stdint.h>
 
-/*NVIC Register Definition */
 typedef struct
 {
 	volatile uint32_t ISER[8];

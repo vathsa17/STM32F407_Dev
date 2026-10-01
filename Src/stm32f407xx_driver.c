@@ -21,11 +21,30 @@ static const uint8_t APB_PrescalerTable[8] = {
     2, 4, 8, 16             // 4..7 -> HCLK / 2, 4, 8, 16
 };
 
-/**
- * @brief Function to get the APB1 Clock
- * 
- * @return uint32_t APB1 Clock frequency
- */
+uint32_t Get_PLLClk()
+{
+
+	uint32_t pllcfgr = RCC->PLLCFGR;
+
+	uint32_t pll_m = pllcfgr & 0x3FU;
+	uint32_t pll_n = (pllcfgr >> 6U) & 0x1FFU;
+	uint32_t pll_p_bits = (pllcfgr >> 16U) & 0x03U;
+	uint32_t pll_src = (pllcfgr >> 22U) & 0x01U;
+
+	uint32_t pll_p = (pll_p_bits + 1U) * 2U;
+
+	uint32_t pll_input =
+	    (pll_src == 0U) ? 16000000U : 8000000U;
+
+	uint32_t pll_clk =
+	    (pll_input * pll_n) / (pll_m * pll_p);
+
+	if (pll_m == 0U)
+    {
+        return 0U;
+    }
+	return pll_clk;
+}
 uint32_t RCC_GetPCLK1Val(void)
 {
     uint32_t sys_clk = 0;
@@ -40,7 +59,7 @@ uint32_t RCC_GetPCLK1Val(void)
             sys_clk = 8000000U;  // HSE (8 MHz external crystal)
             break;
         case 2:
-            // Optional: Add PLL clock retrieval if PLL is configured
+        	Get_PLLClk();
             break;
         default:
             sys_clk = 16000000U;
@@ -57,12 +76,6 @@ uint32_t RCC_GetPCLK1Val(void)
     return (sys_clk / ahb_pre) / apb1_pre;
 }
 
-/**
- * @brief Function to Return the APB2 Clock
- * 
- * @return uint32_t APB2 Clock Frequency
- */
-
 uint32_t RCC_GetPCLK2Val(void)
 {
     uint32_t sys_clk = 0;
@@ -77,6 +90,7 @@ uint32_t RCC_GetPCLK2Val(void)
             sys_clk = 8000000U;  // HSE (8 MHz external crystal)
             break;
         case 2:
+        	Get_PLLClk();
             // Optional: Add PLL clock retrieval if PLL is configured
             break;
         default:
@@ -93,12 +107,6 @@ uint32_t RCC_GetPCLK2Val(void)
 
     return (sys_clk / ahb_pre) / apb2_pre;
 }
-/**
- * @brief USART Initilization Function
- * 
- * @param USARTx USART Channel
- * @param USART_Conf USART Conf Struct
- */
 
 void USART_Init(USART_RegDef_t * USARTx, USART_Conf_t USART_Conf)
 {

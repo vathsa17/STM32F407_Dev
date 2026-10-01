@@ -19,33 +19,30 @@ void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf)
 	GPIOx->MODER &= ~(0x03<< (GPIOPinConf.GPIO_PinNumber * 2));
 	GPIOx->MODER |= (GPIOPinConf.GPIO_PinMode << (GPIOPinConf.GPIO_PinNumber * 2));
 
-	/*Configure Outspeed and Out type*/
 	if ((GPIOPinConf.GPIO_PinMode == GPIO_MODE_OUTPUT) || (GPIOPinConf.GPIO_PinMode == GPIO_MODE_ALT))
 	{
 		GPIOx->OTYPER &= ~(0x01 << GPIOPinConf.GPIO_PinNumber);
 		GPIOx->OTYPER |= (GPIOPinConf.GPIO_OutType << GPIOPinConf.GPIO_PinNumber);
 
-		GPIOx->OSPEEDR &= ~(0x03 << GPIOPinConf.GPIO_PinNumber);
-		GPIOx->OSPEEDR |= (GPIOPinConf.GPIO_OutType << GPIOPinConf.GPIO_PinNumber * 2);
+		GPIOx->OSPEEDR &= ~(0x03 << GPIOPinConf.GPIO_PinNumber*2);
+		GPIOx->OSPEEDR |= (GPIOPinConf.GPIO_OutSpeed << GPIOPinConf.GPIO_PinNumber * 2);
 	}
 
 
-	/*Write Pull Up Pull down Config*/
-	GPIOx->PUPDR &= ~(0x03 << GPIOPinConf.GPIO_PinNumber);
+	GPIOx->PUPDR &= ~(0x03 << GPIOPinConf.GPIO_PinNumber*2);
 	GPIOx->PUPDR |= (GPIOPinConf.GPIO_PUPD << GPIOPinConf.GPIO_PinNumber * 2);
 
-	/*Write Alternate Function Modes*/
 	if(GPIOPinConf.GPIO_PinMode == GPIO_MODE_ALT)
 	{
 		if (GPIOPinConf.GPIO_PinNumber <8)
 		{
-			GPIOx->AFRL &= ~(0x0F << GPIOPinConf.GPIO_PinNumber);
+			GPIOx->AFRL &= ~(0x0F << GPIOPinConf.GPIO_PinNumber*2);
 			GPIOx->AFRL |= (GPIOPinConf.GPIO_AltFnc  << GPIOPinConf.GPIO_PinNumber * 4);
 		}
 		else
 		{
-			GPIOx->AFRH &= ~(0x0F << GPIOPinConf.GPIO_PinNumber);
-			GPIOx->AFRH |= (GPIOPinConf.GPIO_AltFnc << GPIOPinConf.GPIO_PinNumber * 4);
+			GPIOx->AFRH &= ~(0x0F << (GPIOPinConf.GPIO_PinNumber-8)*2);
+			GPIOx->AFRH |= (GPIOPinConf.GPIO_AltFnc << (GPIOPinConf.GPIO_PinNumber-8) * 4);
 		}
 	}
 }
@@ -127,7 +124,6 @@ void GPIO_LockPinConf(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
 
 void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Priority)
 {
-	/*Enable SysClock*/
 	SYSCFG_CLK_ENB();
 
 	uint8_t index,bitpos,portcode;
@@ -136,11 +132,9 @@ void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Prio
 	bitpos=(GPIOPinConf.GPIO_PinNumber%4)*4;
 	portcode=SYSCFG_EXTICR_PORTCODE(GPIOx);
 
-	/*Configure the EXTICR Register*/
 	SYSCFG->EXTICR[index] &=~(0x0FU<<bitpos);
 	SYSCFG->EXTICR[index] |=(portcode<<bitpos);
 
-	/*Configure the Edge triggers*/
 	switch (GPIOPinConf.GPIO_EdgeTrigger)
 	{
 
@@ -167,6 +161,5 @@ void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Prio
 
 	EXTI->IMR |=(0x01<<GPIOPinConf.GPIO_PinNumber);
 	NVIC_SetPriority(GPIO_PIN_TO_IRQ(GPIOPinConf.GPIO_PinNumber),Priority);
-	/*Enable the IRQ*/
 	NVIC_EnableIRQ(GPIO_PIN_TO_IRQ(GPIOPinConf.GPIO_PinNumber));
 }

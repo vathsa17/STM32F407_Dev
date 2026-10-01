@@ -103,6 +103,7 @@ typedef struct
 #define RCC ((RCC_RegDef_t *)(AHB1_BASEADDR+0x3800UL))
 #define EXTI ((EXTI_RegDef_t *) (APB2_BASEADDR+0x3C00UL))
 
+#define CAN1 	((CAN_RegDef_t *) 	(APB1_BASEADDR+0x6400UL))
 #define USART6 ((USART_RegDef_t *) (APB2_BASEADDR+0x1400UL) )
 #define USART1 ((USART_RegDef_t *) (APB2_BASEADDR+0x1000UL) )
 #define USART2 ((USART_RegDef_t *) (APB1_BASEADDR+0x4400UL) )
@@ -163,6 +164,10 @@ typedef struct
 #define UART5_CLK_ENB()	(RCC->APB2ENR |= 0x01U<<20U)
 
 
+#define CAN1_ENB()	(RCC->APB1ENR |= 0x01U<<25U)
+
 #include "stm32f407xx_gpio_driver.h"
 #include "stm32f407xx_usart_driver.h"
+#include "stm32f407xx_can_driver.h"
+#include "stm32f407xx_can_driver.h"
 #endif /* STM32F407XX_H_ */
