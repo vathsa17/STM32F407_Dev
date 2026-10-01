@@ -12,6 +12,7 @@ GPIO_PinConf_t CAN_RX;
 USART_Conf_t USART2_Conf;
 
 volatile uint8_t motion_detected = 0;
+char tx_msg[] = "J\r\n";
 void USART2_Init(void)
 {
 	GPIO_PinConf_t USART_Pin;
@@ -144,22 +145,30 @@ int main(void)
 {
 	IRSensorInit();
 	BlueLED_Init();
-
+	USART2_Init();
+	UserButton_Init();
+	
 	while(1)
 	{
 
-		if(motion_detected==1)
+/* 		if(motion_detected==1)
 		{
 			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
 			delay_ms(5000);
 			motion_detected=0;
+			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1);
 			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
 		}
+ */
+		
+	
+
+
 	}
 }
 
 
-void EXTI1_IRQHandler(void)
+void EXTI0_IRQHandler(void)
 {
 
 
@@ -172,11 +181,12 @@ void EXTI1_IRQHandler(void)
 
 	simDelay();
 
-	if(GPIO_ReadPin(GPIOA,GPIO_PIN_NUM_1)==GPIO_PIN_HIGH)
+	if(GPIO_ReadPin(GPIOA,GPIO_PIN_NUM_0)==GPIO_PIN_HIGH)
 
 	{
 
-		motion_detected=1;
+		USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1);
+		//motion_detected=1; //Set the Global Variable when Motion is Detected
 
 	}
 

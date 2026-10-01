@@ -37,7 +37,7 @@ typedef struct
 	volatile uint32_t STIR;;
 }NVIC_RegDef_t;
 
-#define NVIC ((NVIC_RegDef_t *)(0xE000E100))
+#define NVIC ((NVIC_RegDef_t *)(0xE000E100)) /**NVIC Memory Def */
 
 
 #define EXTI_NO_0 6U

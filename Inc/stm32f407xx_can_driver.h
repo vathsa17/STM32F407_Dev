@@ -24,6 +24,14 @@
 #define CAN_TS2_SHIFT 20U
 #define BRP_SHIFT 0U
 #define CAN_SJW_SHIFT 24U
+
+typedef enum
+{
+    CAN_OK,
+    CAN_NO_MESSAGE
+} CAN_Status_t;
+
+
 typedef struct
 {
 	volatile uint32_t CAN_MCR;
@@ -90,6 +98,6 @@ typedef struct
 } CAN_Message_t;
 
 void CAN_Init(void);
-void CAN_ReadMessage(CAN_RegDef_t *CANx, CAN_Message_t *msg);
+CAN_Status_t  CAN_ReadMessage(CAN_RegDef_t *CANx, CAN_Message_t *msg);
 
 #endif /* STM32F407XX_CAN_DRIVER_H_ */

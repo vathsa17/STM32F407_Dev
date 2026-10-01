@@ -42,9 +42,11 @@ void CAN_Init()
 
 }
 
-void CAN_ReadMessage(CAN_RegDef_t * CANx, CAN_Message_t *inComingMsg)
+CAN_Status_t  CAN_ReadMessage(CAN_RegDef_t * CANx, CAN_Message_t *inComingMsg)
 {
 
+	
+	CAN_Status_t Status;
 	if ((CANx->CAN_RF0R & 0x03U) != 0U) //Check if the FMP0 Has pending messages
 	{
 
@@ -67,13 +69,16 @@ void CAN_ReadMessage(CAN_RegDef_t * CANx, CAN_Message_t *inComingMsg)
 
 		CANx->CAN_RF0R |= (1U << 5);
 
+		Status=CAN_OK;
+
 	}
 	else
 	{
 		/*Do Nothing*/
+		Status=CAN_NO_MESSAGE;
 	}
 
-
+	return Status;
 
 }
 
