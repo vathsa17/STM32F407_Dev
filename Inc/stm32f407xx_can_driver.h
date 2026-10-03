@@ -25,12 +25,31 @@
 #define BRP_SHIFT 0U
 #define CAN_SJW_SHIFT 24U
 
+#define CAN_TSR_TME0 1U<<26U
+#define CAN_TSR_TME1 1U<<27U
+#define CAN_TSR_TME2 1U<<28U
+
+#define CAN_TXOK1 1U<<9U
+#define CAN_TXOK0 1U<<1U
+#define CAN_TXOK2 1U<<17U
+#define CAN_TXERR2 1U<<19U
+#define CAN_TXERR0 1U<<3U
+#define CAN_TXERR1 1U<<11U
 typedef enum
 {
     CAN_OK,
-    CAN_NO_MESSAGE
+    CAN_NO_MESSAGE,
+	CAN_STATUS_BUSY,
+	CAN_TX_ERROR
 } CAN_Status_t;
 
+typedef struct 
+{
+	volatile uint32_t CAN_TIxR;
+	volatile uint32_t CAN_TDTxR;
+	volatile uint32_t CAN_TDLxR;
+	volatile uint32_t CAN_TDHxR;
+}canTxRegister;
 
 typedef struct
 {
@@ -43,18 +62,7 @@ typedef struct
 	volatile uint32_t CAN_ESR;
 	volatile uint32_t CAN_BTR;
 	uint32_t Reserved1[88];
-	volatile uint32_t CAN_TI0R;
-	volatile uint32_t CAN_TDT0R;
-	volatile uint32_t CAN_TDL0R;
-	volatile uint32_t CAN_TDH0R;
-	volatile uint32_t CAN_TI1R;
-	volatile uint32_t CAN_TDT1R;
-	volatile uint32_t CAN_TDL1R;
-	volatile uint32_t CAN_TDH1R;
-	volatile uint32_t CAN_TI2R;
-	volatile uint32_t CAN_TDT2R;
-	volatile uint32_t CAN_TDL2R;
-	volatile uint32_t CAN_TDH2R;
+	canTxRegister sCAN_TxR[3];
 	volatile uint32_t CAN_RI0R;
 	volatile uint32_t CAN_RDT0R;
 	volatile uint32_t CAN_RDL0R;
