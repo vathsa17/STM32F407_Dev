@@ -99,6 +99,7 @@ typedef struct
 #define AHB1_BASEADDR (0x40020000UL)
 #define APB2_BASEADDR (0x40010000UL)
 #define APB1_BASEADDR (0x40000000UL)
+
 #define SYSCFG ((SYSCFG_RegDef_t *) (APB2_BASEADDR+0x0UL))
 #define RCC ((RCC_RegDef_t *)(AHB1_BASEADDR+0x3800UL))
 #define EXTI ((EXTI_RegDef_t *) (APB2_BASEADDR+0x3C00UL))
@@ -163,11 +164,32 @@ typedef struct
 #define UART4_CLK_ENB()	(RCC->APB2ENR |= 0x01U<<19U)
 #define UART5_CLK_ENB()	(RCC->APB2ENR |= 0x01U<<20U)
 
+#define USART2_RXNEIE_ENB() (USART2->CR1 |= 0x01U<<5U)
 
 #define CAN1_ENB()	(RCC->APB1ENR |= 0x01U<<25U)
+
+
+
+
+
+#define TRUE 1U
+#define FALSE 0U
+
+#define SET 1U
+#define RESET 0U
+
+#define ENABLE 1U
+#define DISABLE 0U
+
+
+
+uint32_t Get_PLLClk();
+uint32_t RCC_GetPCLK1Val();
+uint32_t RCC_GetPCLK2Val();
 
 #include "stm32f407xx_gpio_driver.h"
 #include "stm32f407xx_usart_driver.h"
 #include "stm32f407xx_can_driver.h"
-#include "stm32f407xx_can_driver.h"
+
+
 #endif /* STM32F407XX_H_ */

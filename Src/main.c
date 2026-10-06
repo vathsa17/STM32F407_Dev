@@ -1,5 +1,5 @@
 #include "stm32f407xx.h"
-
+#include <string.h>
 #define RCC_AHB1ENR   (*(volatile uint32_t *)0x40023830)
 
 GPIO_PinConf_t UserButton_Conf;
@@ -10,9 +10,20 @@ GPIO_PinConf_t CAN_TX;
 GPIO_PinConf_t CAN_RX;
 
 USART_Conf_t USART2_Conf;
+#define RX_BUFFER_SIZE 8U
+#define TX_BUFFER_SIZE 8U
 
+volatile uint8_t RecievedMessage[RX_BUFFER_SIZE];
+volatile uint8_t TransmitMessage[TX_BUFFER_SIZE];
 volatile uint8_t motion_detected = 0;
+volatile uint8_t IsRxAvailable =FALSE;
+volatile uint8_t TxMessageSize=2U;
+volatile uint8_t RxIndex=0U;
+volatile uint8_t RxData=0U;
+
 char tx_msg[] = "J\r\n";
+
+
 void USART2_Init(void)
 {
 	GPIO_PinConf_t USART_Pin;
@@ -37,6 +48,11 @@ void USART2_Init(void)
 	USART2_CLK_ENB();
 	USART_Init(USART2,USART2_Conf);
 
+	
+	NVIC_SetPriority(IRQ_NO_USART2,0U);
+	NVIC_EnableIRQ(IRQ_NO_USART2);
+	USART2_RXNEIE_ENB();
+	
 
 
 
@@ -66,7 +82,7 @@ void UserButton_Init()
     UserButton_Conf.GPIO_EdgeTrigger=GPIO_IT_EDGE_RFT;
     GPIOA_CLK_ENB();
     GPIO_Init(GPIOA,UserButton_Conf);
-    //GPIO_IT_Init(GPIOA,UserButton_Conf,1);
+    GPIO_IT_Init(GPIOA,UserButton_Conf,1);
 
 }
 
@@ -143,7 +159,6 @@ void delay_ms(uint32_t ms)
 
 int main(void)
 {
-	IRSensorInit();
 	BlueLED_Init();
 	USART2_Init();
 	UserButton_Init();
@@ -151,16 +166,42 @@ int main(void)
 	while(1)
 	{
 
-/* 		if(motion_detected==1)
+		if(IsRxAvailable==TRUE)
 		{
-			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
-			delay_ms(5000);
-			motion_detected=0;
-			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1);
-			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
-		}
- */
+			if(RxIndex< RX_BUFFER_SIZE)
+			{
+				RecievedMessage[RxIndex]=RxData;
+				RxIndex++;
+			}
+			else
+			{
+				// Buffer overflow, handle error
+				RxIndex=0;
+			}
+
+			IsRxAvailable=FALSE;
+
+
+			if(RxData=='\n')
+			{
+				RecievedMessage[RxIndex-1]='\0'; // Null-terminate the string
+
+				if(strcmp((const char *)RecievedMessage, "LED ON") == 0)
+				{
+					GPIO_WritePin(GPIOD, GPIO_PIN_NUM_15, GPIO_PIN_HIGH);
+				}
+				else if (strcmp((const char *)RecievedMessage, "LED OFF") == 0)
+				{
+					GPIO_WritePin(GPIOD, GPIO_PIN_NUM_15, GPIO_PIN_LOW);
+				}
+
+				RxData=0U;
+				RxIndex=0;
+				strcpy(RecievedMessage, "");
+			}
 		
+		}
+
 	
 
 
@@ -170,15 +211,6 @@ int main(void)
 
 void EXTI0_IRQHandler(void)
 {
-
-
-	if (EXTI->PR & (1U << IRSensor_Conf.GPIO_PinNumber))
-	{
-	    EXTI->PR = (1U << IRSensor_Conf.GPIO_PinNumber);
-	}
-
-	//GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
-
 	simDelay();
 
 	if(GPIO_ReadPin(GPIOA,GPIO_PIN_NUM_0)==GPIO_PIN_HIGH)
@@ -186,9 +218,22 @@ void EXTI0_IRQHandler(void)
 	{
 
 		USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1);
-		//motion_detected=1; //Set the Global Variable when Motion is Detected
+
 
 	}
+}
 
+/**
+ * @brief Service Routine for USART2 Interrupts. This function is called when an interrupt occurs on USART2.
+ * 
+ */
 
+void USART2_IRQHandler(void)
+{
+	motion_detected=1;
+	if(USART2->SR & (1U<<5U)) //Check if RXNE Flag is Set
+	{
+		RxData=USART2->DR; //Read the Data from DR Register
+		IsRxAvailable=TRUE; //Set the Flag to Indicate Data is Available
+	}
 }

@@ -48,6 +48,10 @@ typedef struct
 #define EXTI_NO_9_5 23U
 #define EXTI_NO_10_15 40U
 
+#define IRQ_NO_USART2 38U
+
+
+
 #define SYSTICK_BASE_ADDR    0xE000E010U
 
 #define SYSTICK_CTRL   (*(volatile uint32_t *)(SYSTICK_BASE_ADDR + 0x00U))

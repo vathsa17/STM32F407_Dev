@@ -59,7 +59,7 @@ uint32_t RCC_GetPCLK1Val(void)
             sys_clk = 8000000U;  // HSE (8 MHz external crystal)
             break;
         case 2:
-        	Get_PLLClk();
+        	sys_clk =Get_PLLClk();
             break;
         default:
             sys_clk = 16000000U;
@@ -90,7 +90,7 @@ uint32_t RCC_GetPCLK2Val(void)
             sys_clk = 8000000U;  // HSE (8 MHz external crystal)
             break;
         case 2:
-        	Get_PLLClk();
+        	sys_clk =Get_PLLClk();
             // Optional: Add PLL clock retrieval if PLL is configured
             break;
         default:
@@ -107,65 +107,3 @@ uint32_t RCC_GetPCLK2Val(void)
 
     return (sys_clk / ahb_pre) / apb2_pre;
 }
-
-void USART_Init(USART_RegDef_t * USARTx, USART_Conf_t USART_Conf)
-{
-    uint32_t USARTDIV;
-    uint32_t Mantissa, Fraction, Reminder, Scaling;
-    uint32_t USARTx_Clk;
-    uint32_t tempreg = 0;
-
-    // 1. Disable USART peripheral during configuration (UE = 0)
-    USARTx->CR1 &= ~(1U << 13U);
-
-    // 2. Configure CR1 parameters (Word Length, Parity, Mode, Oversampling)
-    tempreg |= (USART_Conf.WordLenght << 12U);
-    tempreg |= (USART_Conf.Parity << 9U);
-    tempreg |= (USART_Conf.Mode << 2U);
-    tempreg |= (USART_Conf.OverSampleing << 15U);
-    USARTx->CR1 = tempreg; // Write clean configuration to CR1
-
-    // 3. Configure CR2 (Stop Bits)
-    USARTx->CR2 &= ~(3U << 12U); // Clear Stop Bits
-    USARTx->CR2 |= (USART_Conf.StopBits << 12U);
-
-    // 4. Get Bus Clock Frequency
-    if (USARTx == USART1 || USARTx == USART6)
-    {
-        USARTx_Clk = RCC_GetPCLK2Val();
-    }
-    else
-    {
-        USARTx_Clk = RCC_GetPCLK1Val();
-    }
-
-    // 5. Calculate Baud Rate Register (BRR) values
-    // Scaling is 16 for OVER8=0, and 8 for OVER8=1
-    Scaling = 8 * (2 - USART_Conf.OverSampleing);
-
-    // Integer part (Mantissa)
-    USARTDIV = USARTx_Clk / (Scaling * USART_Conf.BaudRate);
-    Mantissa = USARTDIV;
-
-    // Fractional part rounding
-    Reminder = USARTx_Clk % (Scaling * USART_Conf.BaudRate);
-    Fraction = ((Reminder * 100U) + ((Scaling * USART_Conf.BaudRate) / 2U)) / (Scaling * USART_Conf.BaudRate);
-
-    if (USART_Conf.OverSampleing == 0) // 16x Oversampling
-    {
-        Fraction = ((Fraction * 16U) + 50U) / 100U;
-    }
-    else // 8x Oversampling
-    {
-        Fraction = (((Fraction * 8U) + 50U) / 100U) & 0x07U; // Only 3 bits used
-    }
-
-    // 6. Write to BRR cleanly
-    USARTx->BRR = 0; // Clear BRR register completely
-    USARTx->BRR |= (Mantissa << 4U);
-    USARTx->BRR |= (Fraction & 0x0FU);
-
-    // 7. Enable USART Peripheral (UE = 1)
-    USARTx->CR1 |= (1U << 13U);
-}
-

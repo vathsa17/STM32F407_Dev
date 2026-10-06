@@ -36,12 +36,12 @@ void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf)
 	{
 		if (GPIOPinConf.GPIO_PinNumber <8)
 		{
-			GPIOx->AFRL &= ~(0x0F << GPIOPinConf.GPIO_PinNumber*2);
+			GPIOx->AFRL &= ~(0x0F << GPIOPinConf.GPIO_PinNumber*4);
 			GPIOx->AFRL |= (GPIOPinConf.GPIO_AltFnc  << GPIOPinConf.GPIO_PinNumber * 4);
 		}
 		else
 		{
-			GPIOx->AFRH &= ~(0x0F << (GPIOPinConf.GPIO_PinNumber-8)*2);
+			GPIOx->AFRH &= ~(0x0F << (GPIOPinConf.GPIO_PinNumber-8)*4);
 			GPIOx->AFRH |= (GPIOPinConf.GPIO_AltFnc << (GPIOPinConf.GPIO_PinNumber-8) * 4);
 		}
 	}
