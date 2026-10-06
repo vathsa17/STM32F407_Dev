@@ -17,6 +17,7 @@ volatile uint8_t RecievedMessage[RX_BUFFER_SIZE];
 volatile uint8_t TransmitMessage[TX_BUFFER_SIZE];
 volatile uint8_t motion_detected = 0;
 volatile uint8_t IsRxAvailable =FALSE;
+volatile uint8_t ButtonEvent = FALSE;
 volatile uint8_t TxMessageSize=2U;
 volatile uint8_t RxIndex=0U;
 volatile uint8_t RxData=0U;
@@ -165,6 +166,11 @@ int main(void)
 	
 	while(1)
 	{
+		if(ButtonEvent == TRUE)
+		{
+			ButtonEvent = FALSE;
+			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
+		}
 
 		if(IsRxAvailable==TRUE)
 		{
@@ -211,16 +217,8 @@ int main(void)
 
 void EXTI0_IRQHandler(void)
 {
-	simDelay();
-
-	if(GPIO_ReadPin(GPIOA,GPIO_PIN_NUM_0)==GPIO_PIN_HIGH)
-
-	{
-
-		USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1);
-
-
-	}
+	EXTI->PR = (1U << 0U);
+	ButtonEvent = TRUE;
 }
 
 /**
