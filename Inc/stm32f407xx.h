@@ -96,6 +96,22 @@ typedef struct
 
 }USART_RegDef_t;
 
+
+typedef struct
+{
+	volatile uint32_t CR1;
+	volatile uint32_t CR2;
+	uint32_t Reserved0;
+	volatile uint32_t DIER;
+	volatile uint32_t SR;
+	volatile uint32_t EGR;
+	uint32_t Reserved1[3];
+	volatile uint32_t CNT;
+	volatile uint32_t PSC;
+	volatile uint32_t ARR;
+}TIM_RegDef_t;
+
+
 #define AHB1_BASEADDR (0x40020000UL)
 #define APB2_BASEADDR (0x40010000UL)
 #define APB1_BASEADDR (0x40000000UL)
@@ -128,7 +144,8 @@ typedef struct
 #define GPIOJ ((GPIO_RegDef_t *) (AHB1_BASEADDR+0x2400UL))
 #define GPIOK ((GPIO_RegDef_t *) (AHB1_BASEADDR+0x2800UL))
 
-
+#define TIM6 ((TIM_RegDef_t *) (APB1_BASEADDR+0x1000UL))
+#define TIM7 ((TIM_RegDef_t *) (APB1_BASEADDR+0x1400UL))
 
 
 #define GPIOA_CLK_ENB() (RCC->AHB1ENR |= 0x01U<<0U)
@@ -168,7 +185,8 @@ typedef struct
 
 #define CAN1_ENB()	(RCC->APB1ENR |= 0x01U<<25U)
 
-
+#define TIM6_CLK_ENB()	(RCC->APB1ENR |= 0x01U<<4U)
+#define TIM7_CLK_ENB()	(RCC->APB1ENR |= 0x01U<<5U)	
 
 
 
