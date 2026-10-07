@@ -49,7 +49,8 @@ typedef struct
 #define EXTI_NO_10_15 40U
 
 #define IRQ_NO_USART2 38U
-
+#define IRQ_NO_TIM6 54U
+#define IRQ_NO_TIM7 55U
 
 
 #define SYSTICK_BASE_ADDR    0xE000E010U

@@ -25,3 +25,10 @@ void TIM_Base_Stop(TIM_RegDef_t *TIMx)
 {
     TIMx->CR1 &= ~(1U << TIM_CR1_CEN);
 }
+
+void TIM_Base_IT_Init(TIM_RegDef_t *TIMx, uint8_t Priority)
+{
+    TIMx->DIER |= (1U << 0U);
+    NVIC_SetPriority(IRQ_NO_TIM6, Priority);
+    NVIC_EnableIRQ(IRQ_NO_TIM6);
+}

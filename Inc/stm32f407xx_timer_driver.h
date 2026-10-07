@@ -26,6 +26,6 @@ typedef struct
 void TIM6_Base_Init(TIM_RegDef_t *TIMx, TIM_Base_InitTypeDef TIM_BaseConf);
 void TIM_Base_Start(TIM_RegDef_t *TIMx);
 void TIM_Base_Stop(TIM_RegDef_t *TIMx);
-
+void TIM_Base_IT_Init(TIM_RegDef_t *TIMx, uint8_t Priority);
 
 #endif /* STM32F407XX_TIMER_DRIVER_H_ */

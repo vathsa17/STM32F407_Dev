@@ -12,7 +12,7 @@ TIM_Base_InitTypeDef TIM6_BaseConf;
 USART_Conf_t USART2_Conf;
 #define RX_BUFFER_SIZE 8U
 #define TX_BUFFER_SIZE 8U
-
+#define BUTTON_DEBOUCE_TIME 100U
 volatile uint8_t RecievedMessage[RX_BUFFER_SIZE];
 volatile uint8_t TransmitMessage[TX_BUFFER_SIZE];
 volatile uint8_t motion_detected = 0;
@@ -21,7 +21,7 @@ volatile uint8_t ButtonEvent = FALSE;
 volatile uint8_t TxMessageSize=2U;
 volatile uint8_t RxIndex=0U;
 volatile uint8_t RxData=0U;
-
+volatile uint16_t Timer6Counter=0;
 char tx_msg[] = "J\r\n";
 
 
@@ -141,6 +141,16 @@ void TIM6_Start()
 	TIM_Base_Start(TIM6);
 }
 
+void TIM6_Stop()
+{
+	TIM_Base_Stop(TIM6);
+}
+
+void TIM6_IT_Init()
+{
+	TIM_Base_IT_Init(TIM6,1U); 
+}
+
 /**
  * @brief Function Introduses a Simulated Delay
  *
@@ -181,9 +191,10 @@ int main(void)
 	BlueLED_Init();
 	USART2_Init();
 	UserButton_Init();
-	uint16_t Timer6Counter=0;
+
 
 	TIM6_Init();
+	TIM6_IT_Init();
 	TIM6_Start();
 	while(1)
 	{
@@ -229,16 +240,6 @@ int main(void)
 		
 		}
 
-		if(TIM6_UEV_STS())
-		{
-			TIM6_UEV_CLEAR();
-			Timer6Counter++;
-			if(Timer6Counter>=1000)
-			{
-				Timer6Counter=0;
-				GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
-			}
-		}
 
 
 	}
@@ -247,6 +248,8 @@ int main(void)
 
 void EXTI0_IRQHandler(void)
 {
+	
+	TIM6_Start();
 	EXTI->PR = (1U << 0U);
 	ButtonEvent = TRUE;
 }
@@ -263,5 +266,20 @@ void USART2_IRQHandler(void)
 	{
 		RxData=USART2->DR; //Read the Data from DR Register
 		IsRxAvailable=TRUE; //Set the Flag to Indicate Data is Available
+	}
+}
+
+void TIM6_DAC_IRQHandler(void)
+{
+	if(TIM6_UEV_STS())
+	{
+		TIM6_UEV_CLEAR();
+		Timer6Counter++;
+		if(Timer6Counter>=BUTTON_DEBOUCE_TIME)
+		{
+			Timer6Counter=0;
+			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
+			TIM6_Stop();
+		}
 	}
 }
