@@ -8,7 +8,7 @@ GPIO_PinConf_t IRSensor_Conf;
 
 GPIO_PinConf_t CAN_TX;
 GPIO_PinConf_t CAN_RX;
-
+TIM_Base_InitTypeDef TIM6_BaseConf;
 USART_Conf_t USART2_Conf;
 #define RX_BUFFER_SIZE 8U
 #define TX_BUFFER_SIZE 8U
@@ -123,6 +123,24 @@ void IRSensorInit()
 
 }
 
+
+void TIM6_Init()
+{
+	TIM6_BaseConf.Period=999;
+	TIM6_BaseConf.Prescaler=15;
+	TIM6_BaseConf.AutoReloadPreload=TIM_AUTO_RELOAD_PRELOAD_ENABLE;
+	TIM6_CLK_ENB();
+	TIM6_Base_Init(TIM6,TIM6_BaseConf);
+	//NVIC_SetPriority(IRQ_NO_TIM6,1U);
+	//NVIC_EnableIRQ(IRQ_NO_TIM6);
+}
+
+
+void TIM6_Start()
+{
+	TIM_Base_Start(TIM6);
+}
+
 /**
  * @brief Function Introduses a Simulated Delay
  *
@@ -163,7 +181,10 @@ int main(void)
 	BlueLED_Init();
 	USART2_Init();
 	UserButton_Init();
-	
+	uint16_t Timer6Counter=0;
+
+	TIM6_Init();
+	TIM6_Start();
 	while(1)
 	{
 		if(ButtonEvent == TRUE)
@@ -208,7 +229,16 @@ int main(void)
 		
 		}
 
-	
+		if(TIM6_UEV_STS())
+		{
+			TIM6_UEV_CLEAR();
+			Timer6Counter++;
+			if(Timer6Counter>=1000)
+			{
+				Timer6Counter=0;
+				GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
+			}
+		}
 
 
 	}
