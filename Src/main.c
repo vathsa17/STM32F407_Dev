@@ -20,9 +20,12 @@ volatile uint8_t IsRxAvailable =FALSE;
 volatile uint8_t ButtonEvent = FALSE;
 volatile uint8_t TxMessageSize=2U;
 volatile uint8_t RxIndex=0U;
-volatile uint8_t RxData=0U;
 volatile uint16_t Timer6Counter=0;
 char tx_msg[] = "J\r\n";
+volatile uint8_t RingBufferOverflow = 0;
+RingBuffer_t RingBuffer;
+NMEA_Parser_t nmea_parser;
+
 
 
 void USART2_Init(void)
@@ -192,52 +195,27 @@ int main(void)
 	USART2_Init();
 	UserButton_Init();
 
-
+	NMEA_Init(&nmea_parser);
 	TIM6_Init();
 	TIM6_IT_Init();
 	TIM6_Start();
+
+	RingBuffer_Init(&RingBuffer);
 	while(1)
 	{
+
 		if(ButtonEvent == TRUE)
 		{
 			ButtonEvent = FALSE;
 			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
 		}
 
-		if(IsRxAvailable==TRUE)
+		uint8_t data;
+		if(RingBuffer_Get(&RingBuffer, &data))
 		{
-			if(RxIndex< RX_BUFFER_SIZE)
-			{
-				RecievedMessage[RxIndex]=RxData;
-				RxIndex++;
-			}
-			else
-			{
-				// Buffer overflow, handle error
-				RxIndex=0;
-			}
-
-			IsRxAvailable=FALSE;
-
-
-			if(RxData=='\n')
-			{
-				RecievedMessage[RxIndex-1]='\0'; // Null-terminate the string
-
-				if(strcmp((const char *)RecievedMessage, "LED ON") == 0)
-				{
-					GPIO_WritePin(GPIOD, GPIO_PIN_NUM_15, GPIO_PIN_HIGH);
-				}
-				else if (strcmp((const char *)RecievedMessage, "LED OFF") == 0)
-				{
-					GPIO_WritePin(GPIOD, GPIO_PIN_NUM_15, GPIO_PIN_LOW);
-				}
-
-				RxData=0U;
-				RxIndex=0;
-				strcpy(RecievedMessage, "");
-			}
-		
+			
+			NMEA_ParseByte(&nmea_parser, data);
+			
 		}
 
 
@@ -261,11 +239,15 @@ void EXTI0_IRQHandler(void)
 
 void USART2_IRQHandler(void)
 {
-	motion_detected=1;
+
 	if(USART2->SR & (1U<<5U)) //Check if RXNE Flag is Set
 	{
+		uint8_t RxData;
 		RxData=USART2->DR; //Read the Data from DR Register
-		IsRxAvailable=TRUE; //Set the Flag to Indicate Data is Available
+		if (!RingBuffer_Put(&RingBuffer, RxData))
+        {
+            RingBufferOverflow++;
+        }
 	}
 }
 
