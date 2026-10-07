@@ -8,8 +8,11 @@
 #ifndef STM32F407XX_H_
 #define STM32F407XX_H_
 #include <stdint.h>
+#include <stdbool.h>
 #include "cortexM4.h"
 /*GPIOD Reg Def*/
+
+
 typedef struct
 {
 	volatile uint32_t MODER;
@@ -209,5 +212,7 @@ uint32_t RCC_GetPCLK2Val();
 #include "stm32f407xx_usart_driver.h"
 #include "stm32f407xx_can_driver.h"
 #include "stm32f407xx_timer_driver.h"
+#include "stm32f407xx_gnss_driver.h"
+#include "ringbuffer.h"
 
 #endif /* STM32F407XX_H_ */
