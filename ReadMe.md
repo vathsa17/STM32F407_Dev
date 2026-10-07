@@ -44,6 +44,7 @@ The project currently includes:
 - UART reception from PC to STM32
 - Bidirectional PC-to-STM32 UART communication
 - Interrupt Control for Push Button and UART Reception
+- Timer Features added and LED Blinking with Timers
 
 The current implementation provides the foundation for progressively developing reusable drivers and a larger embedded software architecture.
 
