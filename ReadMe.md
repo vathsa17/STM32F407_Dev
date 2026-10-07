@@ -45,6 +45,8 @@ The project currently includes:
 - Bidirectional PC-to-STM32 UART communication
 - Interrupt Control for Push Button and UART Reception
 - Timer Features added and LED Blinking with Timers
+- GNSS Signals are being received on UART2 and Processed using RingBuffer
+
 
 The current implementation provides the foundation for progressively developing reusable drivers and a larger embedded software architecture.
 
@@ -64,6 +66,7 @@ The current implementation provides the foundation for progressively developing 
 - LED
 - USART/UART
 - USB-TTL RS232 
+- GNSS Reciever 
 
 ### PC Communication
 
@@ -89,7 +92,6 @@ STM32F407
 
 - CAN Drivers
 - CAN Tx/Rx using CAN Transciever and USB-CAN Adapter (with a Scapy script or Python-CAN Script)
-- Integrate GNSS Reciever 
 
 ## About Me
 
