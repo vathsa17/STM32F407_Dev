@@ -10,7 +10,7 @@
 
 #include "stm32f407xx.h"
 
-#define BUFFER_SIZE 8
+#define BUFFER_SIZE 64
 
 typedef struct
 {

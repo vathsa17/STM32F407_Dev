@@ -9,7 +9,11 @@
 #define STM32F407XX_H_
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include "cortexM4.h"
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 /*GPIOD Reg Def*/
 
 
