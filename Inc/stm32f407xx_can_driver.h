@@ -109,5 +109,5 @@ typedef struct
 
 void CAN_Init(void);
 CAN_Status_t  CAN_ReadMessage(CAN_RegDef_t *CANx, CAN_Message_t *msg);
-
+CAN_Status_t  CAN_SendMessage(CAN_RegDef_t *CANx, const CAN_Message_t *msg);
 #endif /* STM32F407XX_CAN_DRIVER_H_ */

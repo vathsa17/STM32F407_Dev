@@ -164,11 +164,11 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
                                     }
                                     else if (strcmp(parser->fields[0], "GNGSA") == 0)
                                     {
-                                        //ParseGSA(parser);
+                                        ParseGSA(parser);
                                     }
                                     else if (strcmp(parser->fields[0], "GNRMC") == 0)
                                     {
-                                       // ParseRMC(parser);
+                                        ParseRMC(parser);
                                     }
                                     else
                                     {
@@ -247,3 +247,36 @@ void ParseGGA(NMEA_Parser_t *parser)
     }
     
 }
+
+
+void ParseRMC(NMEA_Parser_t *parser)
+{
+    // Example: $GNRMC,123456.00,A,3723.2475,N,12158.3416,W,0.0,0.0,010203,,*1C
+    /* The Fields in this sentence are:
+     * 1: Time (UTC)
+     * 2: Status (A=Active, V=Void)
+     * 3: Latitude
+     * 4: Latitude Direction (N/S)
+     * 5: Longitude
+     * 6: Longitude Direction (E/W)
+     * 7: Speed Over Ground
+     * 8: Course Over Ground
+     * 9: Date
+     * 10: Magnetic Variation
+     * 11: Magnetic Variation Direction (E/W)
+     */
+}
+
+void ParseGSA(NMEA_Parser_t *parser)
+{
+
+   // $GPGSA,A,3,04,05,09,12,24,25,29,31,,,,,1.8,1.0,1.5*33
+   /*The Fields in this sentence are:
+    * 1: Mode (M=Manual, A=Automatic)
+    * 2: Fix Type (1=No Fix, 2=2D Fix, 3=3D Fix)
+    * 3-14: SV IDs
+    * 15: PDOP
+    * 16: HDOP
+    * 17: VDOP
+    */
+}  

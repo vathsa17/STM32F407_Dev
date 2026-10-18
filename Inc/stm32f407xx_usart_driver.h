@@ -22,7 +22,7 @@ uint8_t OverSampleing;
 USART_Conf_t;
 
 #define USART_MODE_TX 1U
-#define USART_MODE RX 2U
+#define USART_MODE_RX 2U
 #define USART_MODE_RX_TX 3U
 
 #define USART_BAUDRATE_115200 115200U

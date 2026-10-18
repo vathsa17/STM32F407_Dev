@@ -23,7 +23,13 @@ typedef struct
 #define TIM6_UEV_STS() ((TIM6->SR >> TIM_SR_UIF) & 1U)
 #define TIM6_UEV_CLEAR() (TIM6->SR &= ~(1U << TIM_SR_UIF))
 
+#define TIM7_UEV_STS() ((TIM7->SR >> TIM_SR_UIF) & 1U)
+#define TIM7_UEV_CLEAR() (TIM7->SR &= ~(1U << TIM_SR_UIF))
+
+
+void TIM_Base_Init(TIM_RegDef_t *TIMx, TIM_Base_InitTypeDef TIM_BaseConf);
 void TIM6_Base_Init(TIM_RegDef_t *TIMx, TIM_Base_InitTypeDef TIM_BaseConf);
+void TIM7_Base_Init(TIM_RegDef_t *TIMx, TIM_Base_InitTypeDef TIM_BaseConf);
 void TIM_Base_Start(TIM_RegDef_t *TIMx);
 void TIM_Base_Stop(TIM_RegDef_t *TIMx);
 void TIM_Base_IT_Init(TIM_RegDef_t *TIMx, uint8_t Priority);

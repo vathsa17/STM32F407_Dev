@@ -206,7 +206,10 @@ typedef struct
 #define ENABLE 1U
 #define DISABLE 0U
 
-
+#define RX_BUFFER_SIZE 8U
+#define TX_BUFFER_SIZE 8U
+#define UART_TRANSMIT_TIME 1000U
+#define CAN_TRANSMIT_TIME 1000U
 
 uint32_t Get_PLLClk();
 uint32_t RCC_GetPCLK1Val();
@@ -218,5 +221,6 @@ uint32_t RCC_GetPCLK2Val();
 #include "stm32f407xx_timer_driver.h"
 #include "stm32f407xx_gnss_driver.h"
 #include "ringbuffer.h"
+#include "utils.h"
 
 #endif /* STM32F407XX_H_ */

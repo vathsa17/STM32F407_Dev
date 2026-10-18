@@ -1,20 +1,26 @@
 #include "stm32f407xx.h"
 #include <string.h>
-#define RCC_AHB1ENR   (*(volatile uint32_t *)0x40023830)
 
+
+/*GPIO Configuration */
 GPIO_PinConf_t UserButton_Conf;
-
 GPIO_PinConf_t IRSensor_Conf;
+GPIO_PinConf_t CAN_TX_RX;
 
-GPIO_PinConf_t CAN_TX;
-GPIO_PinConf_t CAN_RX;
+/*Timer Initialization */
+TIM_Base_InitTypeDef TIM7_BaseConf;
 TIM_Base_InitTypeDef TIM6_BaseConf;
+
+/*UART Configuration*/
 USART_Conf_t USART2_Conf;
 USART_Conf_t USART3_Conf;
-volatile bool isTransmitt=FALSE;
-#define RX_BUFFER_SIZE 8U
-#define TX_BUFFER_SIZE 8U
-#define BUTTON_DEBOUCE_TIME 1000U
+
+
+volatile bool isUARTTransmitt=FALSE;
+volatile bool isCANTransmitt=FALSE;
+
+
+
 volatile uint8_t RecievedMessage[RX_BUFFER_SIZE];
 volatile uint8_t TransmitMessage[TX_BUFFER_SIZE];
 volatile uint8_t motion_detected = 0;
@@ -22,7 +28,12 @@ volatile uint8_t IsRxAvailable =FALSE;
 volatile uint8_t ButtonEvent = FALSE;
 volatile uint8_t TxMessageSize=2U;
 volatile uint8_t RxIndex=0U;
+volatile uint16_t Timer7Counter=0;
 volatile uint16_t Timer6Counter=0;
+
+
+
+
 char tx_msg[] = "No GPS Lock\r\n";
 volatile uint8_t RingBufferOverflow = 0;
 RingBuffer_t RingBuffer;
@@ -120,24 +131,19 @@ void UserButton_Init()
 
 void CAN_GPIO_Init()
 {
-	CAN_TX.GPIO_PinNumber=GPIO_PIN_NUM_12;
-	CAN_TX.GPIO_PinMode=GPIO_MODE_ALT;
-	CAN_TX.GPIO_OutType=GPIO_OutType_PP;
-	CAN_TX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
-	CAN_TX.GPIO_PUPD=GPIO_NO_PUPD;
-	CAN_TX.GPIO_AltFnc=GPIO_AF9;
+	CAN_TX_RX.GPIO_PinNumber=GPIO_PIN_NUM_8;
+	CAN_TX_RX.GPIO_PinMode=GPIO_MODE_ALT;
+	CAN_TX_RX.GPIO_OutType=GPIO_OutType_PP;
+	CAN_TX_RX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
+	CAN_TX_RX.GPIO_PUPD=GPIO_NO_PUPD;
+	CAN_TX_RX.GPIO_AltFnc=GPIO_AF9;
 
 
-	CAN_RX.GPIO_PinNumber=GPIO_PIN_NUM_11;
-	CAN_RX.GPIO_PinMode=GPIO_MODE_ALT;
-	CAN_RX.GPIO_OutType=GPIO_OutType_PP;
-	CAN_RX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
-	CAN_RX.GPIO_PUPD=GPIO_NO_PUPD;
-	CAN_RX.GPIO_AltFnc=GPIO_AF9;
+	GPIOB_CLK_ENB();
+	GPIO_Init(GPIOB,CAN_TX_RX);
 
-	GPIOA_CLK_ENB();
-	GPIO_Init(GPIOA,CAN_TX);
-	GPIO_Init(GPIOA,CAN_RX);
+	CAN_TX_RX.GPIO_PinNumber=GPIO_PIN_NUM_9;
+	GPIO_Init(GPIOB,CAN_TX_RX);
 
 }
 
@@ -166,6 +172,33 @@ void TIM6_Init()
 	//NVIC_EnableIRQ(IRQ_NO_TIM6);
 }
 
+void TIM7_Init()
+{
+	TIM_Base_InitTypeDef TIM7_BaseConf;
+	TIM7_BaseConf.Period=999;
+	TIM7_BaseConf.Prescaler=15;
+	TIM7_BaseConf.AutoReloadPreload=TIM_AUTO_RELOAD_PRELOAD_ENABLE;
+	TIM7_CLK_ENB();
+	TIM_Base_Init(TIM7,TIM7_BaseConf);
+	//NVIC_SetPriority(IRQ_NO_TIM6,1U);
+	//NVIC_EnableIRQ(IRQ_NO_TIM6);
+}
+
+void TIM7_IT_Init()
+{
+	TIM_Base_IT_Init(TIM7,1U); 
+}
+
+void TIM7_Start()
+{
+	TIM_Base_Start(TIM7);
+}
+
+void TIM7_Stop()
+{
+	TIM_Base_Stop(TIM7);
+}
+
 
 void TIM6_Start()
 {
@@ -182,33 +215,7 @@ void TIM6_IT_Init()
 	TIM_Base_IT_Init(TIM6,1U); 
 }
 
-/**
- * @brief Function Introduses a Simulated Delay
- *
- */
-void simDelay(void)
-{
-	uint32_t delayCounter;
-	for(delayCounter=0;delayCounter<100000;delayCounter++)
-	{
 
-	}
-
-}
-
-void delay_ms(uint32_t ms)
-{
-	SYSTICK_LOAD= 16000 - 1;     // 1 ms @ 16 MHz
-    SYSTICK_VAL  = 0;
-    SYSTICK_CTRL = 5;             // Enable, processor clock, no interrupt
-
-    for (uint32_t i = 0; i < ms; i++)
-    {
-        while ((SYSTICK_CTRL & (1U << 16)) == 0);
-    }
-
-    SYSTICK_CTRL = 0;
-}
 
 
 static void FPU_Enable(void)
@@ -219,27 +226,6 @@ static void FPU_Enable(void)
 }
 
 
-void GNSS_PrintPosition(USART_RegDef_t *USARTx, const GNSS_Data_t *data)
-{
-    char buffer[128];
-
-
-    int n =snprintf(buffer, sizeof(buffer),
-             "Lat: %f\r\n"
-             "Lon: %f\r\n"
-             "Alt: %f m\r\n"
-             "Fix: %u\r\n"
-             "Sat: %u\r\n",
-             data->latitude,
-             data->longitude,
-             data->altitude,
-             data->fix_quality,
-             data->num_satellites);
-
-
-
-    USART_Transmit(USARTx, (uint8_t *)buffer, strlen(buffer));
-}
 
 /**
  * @brief The Main Function of the Driver
@@ -256,10 +242,17 @@ int main(void)
 	//UserButton_Init();
 	USART3_Init();
 	NMEA_ResetParser(&nmea_parser);
+
 	TIM6_Init();
 	TIM6_IT_Init();
 	TIM6_Start();
 
+	TIM7_Init();
+	TIM7_IT_Init();	
+	TIM7_Start();
+
+	CAN_GPIO_Init(); 
+	CAN_Init();
 	
 	while(1)
 	{
@@ -280,9 +273,9 @@ int main(void)
 
 		
 
-		if(isTransmitt==TRUE)
+		if(isUARTTransmitt==TRUE)
 		{
-			isTransmitt=FALSE;
+			isUARTTransmitt=FALSE;
 			if(nmea_parser.isValid)
 			{
 
@@ -296,6 +289,21 @@ int main(void)
 				USART_Transmit(USART3, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
 			}
 		}
+
+		if(isCANTransmitt==TRUE)
+		{
+			isCANTransmitt=FALSE;
+
+			CAN_Message_t can_msg;
+			can_msg.id = 0x123; // Example ID
+			can_msg.dlc = 2;
+			can_msg.data[0] = 0xAB; // Example data
+			can_msg.data[1] = 0xCD; // Example data
+			// Send CAN message
+			CAN_SendMessage(CAN1, &can_msg);
+			
+		}
+
 
 
 
@@ -338,14 +346,30 @@ void TIM6_DAC_IRQHandler(void)
 	{
 		TIM6_UEV_CLEAR();
 		Timer6Counter++;
-		if(Timer6Counter>=BUTTON_DEBOUCE_TIME)
+		if(Timer6Counter>=UART_TRANSMIT_TIME)
 		{
 			Timer6Counter=0;
-			isTransmitt=TRUE;
+			isUARTTransmitt=TRUE;
 			//TIM6_Stop();
 		}
 	}
 } 
+
+void TIM7_IRQHandler(void)
+{
+	if(TIM7_UEV_STS())
+	{
+		TIM7_UEV_CLEAR();
+		Timer7Counter++;
+		if(Timer7Counter>=CAN_TRANSMIT_TIME)
+		{
+			Timer7Counter=0;
+			isCANTransmitt=TRUE;
+			
+		}
+		// Handle TIM7 interrupt
+	}
+}
 
 
 
