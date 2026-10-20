@@ -17,6 +17,9 @@ Send LED_ON or LED_OFF commands from PC to turn on/off the OnBoard Blue LED.
 UART2 BaudRate is 9600, 8 data bits, no parity, 1 stop bit.
 
 */
+
+#define BUTTON_DEBOUNCE_TIME 100U
+
 /*GPIO Configuration */
 GPIO_PinConf_t UserButton_Conf;
 
@@ -163,7 +166,7 @@ int main(void)
 	UserButton_Init();
 	TIM6_Init();
 	TIM6_IT_Init();
-	TIM6_Start();
+
 
 	while(1)
 	{
@@ -215,15 +218,15 @@ int main(void)
 }
 
 
-/*
+
 void EXTI0_IRQHandler(void)
 {
 	
 	TIM6_Start();
 	EXTI->PR = (1U << 0U);
-	ButtonEvent = TRUE;
+	
 }
-*/
+
 /**
  * @brief Service Routine for USART2 Interrupts. This function is called when an interrupt occurs on USART2.
  * 
@@ -236,6 +239,21 @@ void USART2_IRQHandler(void)
 	{
 		RxData=USART2->DR; //Read the Data from DR Register
 		IsRxAvailable=TRUE; //Set the Flag to indicate that data is available
+	}
+}
+
+
+
+void TIM6_DAC_IRQHandler(void)
+{
+	
+	TIM6->SR &= ~(1U << 0U); // Clear the update interrupt flag
+	Timer6Counter++;
+	if(Timer6Counter>=BUTTON_DEBOUNCE_TIME) //1 Second has passed
+	{
+		Timer6Counter=0U;
+		TIM6_Stop();
+		ButtonEvent = TRUE;
 	}
 }
 
