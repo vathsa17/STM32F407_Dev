@@ -19,8 +19,8 @@
 #define CAN_MSR_INAK        (1U << CAN_MSR_INAK_Pos)
 
 #define CAN_PRESCALER 2U
-#define CAN_TS1 11
-#define CAN_TS2 4
+#define CAN_TS1 13
+#define CAN_TS2 2
 #define CAN_SJW 1
 #define CAN_TS1_SHIFT 16U
 #define CAN_TS2_SHIFT 20U
@@ -37,6 +37,9 @@
 #define CAN_TXERR2 1U<<19U
 #define CAN_TXERR0 1U<<3U
 #define CAN_TXERR1 1U<<11U
+
+#define CAN_MCR_SLEEP  (1U << 1U)
+#define CAN_MSR_SLAK   (1U << 1U)
 typedef enum
 {
     CAN_OK,

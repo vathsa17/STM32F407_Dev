@@ -9,8 +9,20 @@ void CAN_Init()
 {
 	CAN1_ENB(); //Enable the CAN1 clock in the RCC
 
-	CAN1->CAN_MCR |= CAN_MCR_INRQ; //Request initialization and wait for Acknowledgment
-	while (!(CAN1->CAN_MSR & CAN_MSR_INAK))
+	CAN1->CAN_MCR &= ~CAN_MCR_SLEEP;
+
+	volatile uint32_t timeout = 1000000U;
+	while (CAN1->CAN_MSR & CAN_MSR_SLAK)
+	{
+		if (timeout-- == 0U)
+		{
+			/* Record/report initialization failure; don't wait forever. */
+			return;
+		}
+	}
+
+	CAN1->CAN_MCR |= CAN_MCR_INRQ;
+while (!(CAN1->CAN_MSR & CAN_MSR_INAK))
 	{
 		//Wait until the Init is acknowledged
 	}
@@ -19,26 +31,40 @@ void CAN_Init()
 
 	/*Initilize the CAN Communication*/
 	/*Configure Bit Timing*/
-	CAN1->CAN_BTR|=((CAN_PRESCALER-1)<<BRP_SHIFT);
-	CAN1->CAN_BTR|=((CAN_TS1-1)<<CAN_TS1_SHIFT);
-	CAN1->CAN_BTR|=((CAN_TS2-1)<<CAN_TS2_SHIFT);
-	CAN1->CAN_BTR|=((CAN_SJW-1)<<CAN_SJW_SHIFT);
+	CAN1->CAN_BTR =
+		((CAN_PRESCALER - 1U) << BRP_SHIFT) |
+		((CAN_TS1 - 1U)       << CAN_TS1_SHIFT) |
+		((CAN_TS2 - 1U)       << CAN_TS2_SHIFT) |
+		((CAN_SJW - 1U)       << CAN_SJW_SHIFT);
 
-	CAN1->CAN_FMR|=(1U<<0U); /*Filter Init*/
-	CAN1->CAN_FM1R &=~(1<<0); /*We want to use the first filter bank with mask mode. Hence explicitly bit is 0*/
-	CAN1->CAN_FS1R |= (1U << 0);/*1 32 Bit Scale*/
-	CAN1->CAN_FFA1R &= ~(1U << 0);   // Bank 0 → FIFO0
-	CAN1->CAN_FA1R |= (1U << 0); //Activate Bank0
-	CAN1->CAN_F0R1 = 0x00000000; // Filter ID
-	CAN1->CAN_F0R2 = 0x00000000; // Mask
-	CAN1->CAN_FMR &=~(1U<<0U); /*Filter Init*/
+	CAN1->CAN_FMR |= (1U << 0U);       /* Enter filter init */
+	CAN1->CAN_FA1R &= ~(1U << 0U);     /* Deactivate bank 0 */
+	CAN1->CAN_FM1R &= ~(1U << 0U);     /* Mask mode */
+	CAN1->CAN_FS1R |= (1U << 0U);      /* 32-bit scale */
+	CAN1->CAN_FFA1R &= ~(1U << 0U);    /* FIFO0 */
+
+	CAN1->CAN_F0R1 = 0U;               /* Filter ID */
+	CAN1->CAN_F0R2 = 0U;               /* Mask: accept all IDs */
+
+	CAN1->CAN_FA1R |= (1U << 0U);      /* Activate bank 0 */
+	CAN1->CAN_FMR &= ~(1U << 0U);     /* Leave filter init */
 
 
 	CAN1->CAN_MCR &= ~CAN_MCR_INRQ; //Leave initialization and wait for Acknowledgment
+	
+		// Enable automatic bus-off recovery (ABOM, bit 6)
+	CAN1->CAN_MCR |= (1U << 6U);
+
+// Enable automatic retransmission by clearing NART (bit 4)
+	CAN1->CAN_MCR &= ~(1U << 4U);
 	while (CAN1->CAN_MSR & CAN_MSR_INAK)
 	{
 		//Wait until the Init is acknowledged
 	}
+
+
+
+
 
 }
 
@@ -83,47 +109,76 @@ CAN_Status_t  CAN_ReadMessage(CAN_RegDef_t * CANx, CAN_Message_t *inComingMsg)
 }
 
 
-CAN_Status_t  CAN_SendMessage(CAN_RegDef_t * CANx, const CAN_Message_t *OutGoingMsg)
+
+CAN_Status_t CAN_SendMessage(
+    CAN_RegDef_t *CANx,
+    const CAN_Message_t *OutGoingMsg)
 {
-	CAN_Status_t CAN_Tx_Status;
-	uint8_t mailBox;
+    uint8_t mailBox;
 
-	if(CANx->CAN_TSR & CAN_TSR_TME0)
-	{
-		mailBox=0;
-	}
-	else if(CANx->CAN_TSR & CAN_TSR_TME1)
-	{
-		mailBox=1;
-	}
-	else if(CANx->CAN_TSR & CAN_TSR_TME2)
-	{
-		mailBox=2;
-	}
-	else
-	{
-		CAN_Tx_Status=CAN_STATUS_BUSY;
-		return CAN_Tx_Status;
-	}
+    if (CANx == 0 || OutGoingMsg == 0)
+    {
+        return CAN_TX_ERROR;
+    }
 
-	CANx->sCAN_TxR[mailBox].CAN_TIxR=OutGoingMsg->id<<21U;
-	CANx->sCAN_TxR[mailBox].CAN_TDTxR=OutGoingMsg->dlc;
-	CANx->sCAN_TxR[mailBox].CAN_TDLxR=((uint32_t)OutGoingMsg->data[3]<<24 \
-									| (uint32_t)OutGoingMsg->data[2]<<16 \
-									| (uint32_t)OutGoingMsg->data[1]<<8 \
-									|(uint32_t) OutGoingMsg->data[0]);
-	CANx->sCAN_TxR[mailBox].CAN_TDHxR=((uint32_t)OutGoingMsg->data[7]<<24 \
-									| (uint32_t)OutGoingMsg->data[6]<<16 \
-									| (uint32_t)OutGoingMsg->data[5]<<8 \
-									| (uint32_t)OutGoingMsg->data[4]);
-	CANx->sCAN_TxR[mailBox].CAN_TIxR|=1U;
+    /* This implementation supports standard data frames only. */
+    if (OutGoingMsg->id > 0x7FFU ||
+        OutGoingMsg->dlc > 8U)
+    {
+        return CAN_TX_ERROR;
+    }
 
-	
-	return CAN_OK;
-	
+    if (CANx->CAN_TSR & CAN_TSR_TME0)
+    {
+        mailBox = 0U;
+    }
+    else if (CANx->CAN_TSR & CAN_TSR_TME1)
+    {
+        mailBox = 1U;
+    }
+    else if (CANx->CAN_TSR & CAN_TSR_TME2)
+    {
+        mailBox = 2U;
+    }
+    else
+    {
+        return CAN_STATUS_BUSY;
+    }
 
+    /* Standard ID, data frame, IDE=0 and RTR=0 */
+    CANx->sCAN_TxR[mailBox].CAN_TIxR =
+        ((uint32_t)OutGoingMsg->id << 21U);
 
+    CANx->sCAN_TxR[mailBox].CAN_TDTxR =
+        (uint32_t)OutGoingMsg->dlc;
+
+    uint32_t low = 0U;
+    uint32_t high = 0U;
+
+    for (uint8_t i = 0U; i < OutGoingMsg->dlc; i++)
+    {
+        if (i < 4U)
+        {
+            low |= ((uint32_t)OutGoingMsg->data[i])
+                   << (8U * i);
+        }
+        else
+        {
+            high |= ((uint32_t)OutGoingMsg->data[i])
+                    << (8U * (i - 4U));
+        }
+    }
+
+    CANx->sCAN_TxR[mailBox].CAN_TDLxR = low;
+    CANx->sCAN_TxR[mailBox].CAN_TDHxR = high;
+
+    /* Request transmission */
+    CANx->sCAN_TxR[mailBox].CAN_TIxR |= 1U;
+
+    /* Request queued; actual TX outcome is not known yet. */
+    return CAN_OK;
 }
+
 
 
 CAN_Status_t CAN_GetTxStatus(CAN_RegDef_t * CANx)

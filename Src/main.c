@@ -236,7 +236,7 @@ static void FPU_Enable(void)
 int main(void)
 {
 	FPU_Enable();
-	BlueLED_Init();
+	//BlueLED_Init();
 	RingBuffer_Init(&RingBuffer);
 	USART2_Init();
 	//UserButton_Init();
@@ -253,6 +253,8 @@ int main(void)
 
 	CAN_GPIO_Init(); 
 	CAN_Init();
+	
+	
 	
 	while(1)
 	{
@@ -292,7 +294,7 @@ int main(void)
 
 		if(isCANTransmitt==TRUE)
 		{
-			isCANTransmitt=FALSE;
+
 
 			CAN_Message_t can_msg;
 			can_msg.id = 0x123; // Example ID
@@ -302,6 +304,8 @@ int main(void)
 			// Send CAN message
 			CAN_SendMessage(CAN1, &can_msg);
 			
+			isCANTransmitt=FALSE;
+
 		}
 
 
