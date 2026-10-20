@@ -1,104 +1,98 @@
-# STM32 Real-Time Sensor and Communication Platform
+# STM32F407: UART, Push Button and LED Control
 
-A hands-on embedded software project based on the STM32F407 microcontroller, focused on developing practical expertise in Embedded C, ARM Cortex-M architecture, peripheral drivers, real-time systems, communication, debugging, and embedded software architecture.
+## Overview
 
-The project is being developed incrementally, starting from low-level peripheral control and progressing toward a modular, RTOS-based embedded system.
+This project demonstrates UART communication, push-button input, and onboard LED control using the **STM32F407G-DISCOVERY** development board.
 
-## Project Goals
+The application uses the USART2 peripheral to communicate with a PC, reads the onboard user button, and controls the onboard blue LED based on commands received over UART. USART2 interrupt handling enables asynchronous reception of serial data, while TIM6 is configured for timing operations.
 
-The primary goal of this project is to build a complete embedded software platform on the STM32F407 while developing a deeper understanding of how embedded software interacts with microcontroller hardware.
+## Features
 
-The project focuses on:
+- **UART Communication:** Bidirectional serial communication between the STM32 board and a PC.
+- **Push-Button Input:** Pressing the onboard user button sends the message `Button Pressed` to the PC.
+- **LED Control:** Control the onboard blue LED by sending commands from the PC.
+- **Interrupt-Driven Reception:** USART2 handles received data using interrupt-based processing.
+- **Timer Configuration:** TIM6 is initialized for timing operations.
 
-- Embedded C and low-level programming
-- ARM Cortex-M4 architecture
-- STM32F407 peripherals
-- Memory-mapped I/O and peripheral registers
-- GPIO and interrupt handling
-- UART, I2C and SPI communication
-- Timers and PWM
-- DMA
-- Peripheral driver development
-- FreeRTOS and real-time systems
-- Inter-task communication and synchronization
-- State machines
-- Error handling and diagnostics
-- Watchdog implementation
-- Embedded software architecture
-- Hardware debugging
-- Unit and integration testing
-- Git-based software development and documentation
+## Hardware Requirements
 
-The long-term objective is to develop software using engineering practices representative of professional embedded systems.
+- STM32F407G-DISCOVERY development board
+- PC with a serial terminal application
+- USB connection for board programming and serial communication, as supported by the configured hardware
 
-## Current Status
+## UART Configuration
 
-The project currently includes:
+| Parameter | Configuration |
+|---|---|
+| Peripheral | USART2 |
+| Baud rate | 9600 |
+| Data bits | 8 |
+| Parity | None |
+| Stop bits | 1 |
+| Format | 8-N-1 |
 
-- STM32F407 development environment
-- GPIO configuration
-- LED control
-- Push button GPIO input
-- UART initialization
-- UART transmission from STM32 to PC
-- UART reception from PC to STM32
-- Bidirectional PC-to-STM32 UART communication
-- Interrupt Control for Push Button and UART Reception
-- Timer Features added and LED Blinking with Timers
-- GNSS Signals are being received on UART2 and Processed using RingBuffer
+## How It Works
 
+### 1. Push-Button to UART Communication
 
-The current implementation provides the foundation for progressively developing reusable drivers and a larger embedded software architecture.
-
-## Current Hardware
-
-### Microcontroller
-
-- STM32F407
-- ARM Cortex-M4
-- STM32 development board
-
-
-### Currently Used Peripherals
-
-- GPIO
-- Push button
-- LED
-- USART/UART
-- USB-TTL RS232 
-- GNSS Reciever 
-
-### PC Communication
-
-UART is currently used as the communication interface between the STM32 and a PC.
-
-The current communication path is:
+When the onboard user button is pressed, the application transmits the following message to the PC:
 
 ```text
-PC
- |
- | UART (via USB-TTL RS232)
- |
-STM32F407
- |
- +-- GPIO
-     |
-     +-- Push Button
-     |
-     +-- LED
+Button Pressed
 ```
 
-## Coming Soon
+The message can be observed using a serial terminal configured with the UART settings listed above.
 
-- CAN Drivers
-- CAN Tx/Rx using CAN Transciever and USB-CAN Adapter (with a Scapy script or Python-CAN Script)
+### 2. UART-Based LED Control
 
-## About Me
+The application receives commands from the PC through USART2 and controls the onboard blue LED.
 
-I am a Senior Embedded and Automotive Software Engineer with 9+ years of experience in automotive software development, ECU integration, validation, embedded communication, and real-time systems.
+| Command sent from PC | Expected behavior |
+|---|---|
+| `LED_ON` | Turns the onboard blue LED on |
+| `LED_OFF` | Turns the onboard blue LED off |
 
-My professional experience includes Embedded C/C++, AUTOSAR, RTOS-based systems, SOME/IP, DoIP, UDS, CAN, V2X, and embedded Linux.
+Send the commands using the configured serial terminal. Commands must match the format expected by the firmware.
 
-This project is focused on strengthening my hands-on embedded software development skills, particularly at the microcontroller and driver level. It provides a practical environment to work with ARM Cortex-M, STM32 peripherals, Embedded C, real-time systems, hardware interfaces, debugging, and embedded software architecture.
+### 3. Interrupt Handling
 
-The long-term goal is to combine my existing automotive system and integration experience with deeper low-level embedded software expertise.
+USART2 reception uses interrupt-based handling so that incoming serial data can be processed without relying solely on continuous polling of the receive peripheral.
+
+### 4. Timer Initialization
+
+TIM6 is configured for timing operations within the application.
+
+## How to Run
+
+1. Open the project in STM32CubeIDE.
+2. Build the firmware.
+3. Connect the STM32F407G-DISCOVERY board to the PC.
+4. Flash the firmware to the microcontroller.
+5. Open a serial terminal connected to the configured USART2 interface.
+6. Configure the terminal for **9600 baud, 8 data bits, no parity, and 1 stop bit**.
+7. Press the onboard user button and verify that `Button Pressed` is received.
+8. Send `LED_ON` and `LED_OFF` from the PC and verify the onboard blue LED behavior.
+
+## Learning Objectives
+
+This demonstration provides practical experience with:
+
+- USART2 peripheral initialization and serial communication
+- GPIO configuration and onboard LED control
+- Push-button input handling
+- Interrupt-driven UART reception
+- Timer peripheral initialization
+- Interaction between microcontroller firmware and PC-based serial tools
+
+## Scope
+
+This is a bare-metal embedded application intended for learning and demonstrating peripheral interaction on the STM32F407G-DISCOVERY board. The application uses a superloop-based execution model.
+
+The implementation serves as a foundation for future enhancements, including reusable peripheral drivers, improved UART buffering, and real-time task-based execution using FreeRTOS.
+
+## Platform
+
+- **Microcontroller:** STM32F407
+- **Development board:** STM32F407G-DISCOVERY
+- **IDE:** STM32CubeIDE
+- **Programming language:** Embedded C
