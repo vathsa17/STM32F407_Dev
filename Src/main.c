@@ -1,6 +1,31 @@
 #include "stm32f407xx.h"
 #include <string.h>
 
+/*
+What do we do in the Code?
+
+A GNSS-UART Device is integrated with the STM32F407G-DISCOVERY Board. 
+The GNSS-UART Device sends NMEA sentences over UART. The STM32F407G-DISCOVERY 
+Board receives these sentences, parses them, and extracts relevant information
+such as latitude, longitude, and altitude. This information is then transmitted 
+over to PC or another device using another UART interface. Additionally, 
+BlueLED on the STM32F407G-DISCOVERY Board is used to indicate the status of the GNSS-UART Device. 
+When a valid NMEA sentence is received and parsed successfully, the BlueLED is turned ON for a brief period to indicate successful reception and parsing.
+
+The Baud rate for both UART interfaces is set to 9600 bps. The STM32F407G-DISCOVERY
+Board uses a ring buffer to store incoming data from the GNSS-UART Device, ensuring that no data is lost during processing. 
+The NMEA parser processes the data byte by byte, validating the sentences and extracting the required information.
+
+
+What did  I learn from this code?
+1. UART Communication: The code demonstrates how to set up UART communication on the STM32F407G-DISCOVERY Board, including configuring GPIO pins for UART functionality, setting baud rates, and handling UART interrupts for data reception.
+2. Ring Buffer Implementation: The code implements a ring buffer to efficiently manage incoming data from the GNSS-UART Device. This allows for continuous data reception without losing any bytes, even if the main processing loop is busy.
+3. NMEA Sentence Parsing: The code includes an NMEA parser that processes incoming data byte by byte, validating the sentences and extracting relevant information such as latitude, longitude, and altitude. This demonstrates how to handle structured data formats in embedded systems.
+4. Timer Usage: The code utilizes timers (TIM6 and TIM7) to manage periodic tasks, such as triggering UART transmissions and CAN message transmissions at specified intervals. This shows how to use timers for scheduling tasks in embedded applications.
+
+We are still in SuperLoop Mode, which means we are not using an RTOS. A FreeRTOS Switch is planned for the future.
+
+*/
 
 /*GPIO Configuration */
 GPIO_PinConf_t UserButton_Conf;
@@ -17,18 +42,12 @@ USART_Conf_t USART3_Conf;
 
 
 volatile bool isUARTTransmitt=FALSE;
-volatile bool isCANTransmitt=FALSE;
+volatile bool isLEDToggle=FALSE;
 
-
-
-volatile uint8_t RecievedMessage[RX_BUFFER_SIZE];
-volatile uint8_t TransmitMessage[TX_BUFFER_SIZE];
-volatile uint8_t motion_detected = 0;
-volatile uint8_t IsRxAvailable =FALSE;
-volatile uint8_t ButtonEvent = FALSE;
-volatile uint8_t TxMessageSize=2U;
-volatile uint8_t RxIndex=0U;
+/** @brief Variable to store the count for TIM7 */
 volatile uint16_t Timer7Counter=0;
+
+/** @brief Variable to store the count for TIM6 */
 volatile uint16_t Timer6Counter=0;
 
 
@@ -40,7 +59,11 @@ RingBuffer_t RingBuffer;
 NMEA_Parser_t nmea_parser;
 
 
-
+/**
+ * @brief Function to Initialize USART2 for communication with the GNSS-UART Device. 
+ * This function configures the GPIO pins, sets up the USART parameters, and enables the necessary interrupts.
+ * 
+ */
 void USART2_Init(void)
 {
 	GPIO_PinConf_t USART_Pin;
@@ -76,7 +99,11 @@ void USART2_Init(void)
 
 }
 
-
+/**
+ * @brief Function to Initialize USART3 for communication with the PC or another device. 
+ * This function configures the GPIO pins, sets up the USART parameters, and enables the necessary interrupts.
+ * 
+ */
 void USART3_Init(void)
 {
 	GPIO_PinConf_t USART_Pin;
@@ -101,6 +128,12 @@ void USART3_Init(void)
 	USART3_CLK_ENB();
 	USART_Init(USART3,USART3_Conf);
 }
+
+/**
+ * @brief Function to Initialize the Blue LED on the STM32F407G-DISCOVERY Board. 
+ * This function configures the GPIO pin connected to the Blue LED as an output pin.
+ * 
+ */
 void BlueLED_Init()
 {
 	GPIO_PinConf_t GPIOD_PinConf = {GPIO_PIN_NUM_15,GPIO_MODE_OUTPUT,GPIO_OutType_PP,GPIO_OutSpeed_Low,GPIO_NO_PUPD};
@@ -108,59 +141,18 @@ void BlueLED_Init()
 	// Enable clock for GPIOD
     //RCC_AHB1ENR |= (1 << 3);
 	GPIOD_CLK_ENB();
+
+	GPIO_Init(GPIOD,GPIOD_PinConf);
+
+
+	GPIOD_PinConf.GPIO_PinNumber=GPIO_PIN_NUM_14;
 	GPIO_Init(GPIOD,GPIOD_PinConf);
 }
 
 /**
- * @brief Function Initilizes the User Button
- *
+ * @brief Function to Initialize TIM6 for generating time delays or PWM signals.
+ * This function configures the TIM6 parameters and enables the clock.
  */
-
-void UserButton_Init()
-{
-
-    UserButton_Conf.GPIO_PinNumber=GPIO_PIN_NUM_0;
-    UserButton_Conf.GPIO_PinMode=GPIO_MODE_INPUT;
-    UserButton_Conf.GPIO_PUPD=GPIO_NO_PUPD;
-    UserButton_Conf.GPIO_EdgeTrigger=GPIO_IT_EDGE_RFT;
-    GPIOA_CLK_ENB();
-    GPIO_Init(GPIOA,UserButton_Conf);
-    GPIO_IT_Init(GPIOA,UserButton_Conf,1);
-
-}
-
-void CAN_GPIO_Init()
-{
-	CAN_TX_RX.GPIO_PinNumber=GPIO_PIN_NUM_8;
-	CAN_TX_RX.GPIO_PinMode=GPIO_MODE_ALT;
-	CAN_TX_RX.GPIO_OutType=GPIO_OutType_PP;
-	CAN_TX_RX.GPIO_OutSpeed=GPIO_OutSpeed_Fast;
-	CAN_TX_RX.GPIO_PUPD=GPIO_NO_PUPD;
-	CAN_TX_RX.GPIO_AltFnc=GPIO_AF9;
-
-
-	GPIOB_CLK_ENB();
-	GPIO_Init(GPIOB,CAN_TX_RX);
-
-	CAN_TX_RX.GPIO_PinNumber=GPIO_PIN_NUM_9;
-	GPIO_Init(GPIOB,CAN_TX_RX);
-
-}
-
-void IRSensorInit()
-{
-
-	IRSensor_Conf.GPIO_PinNumber=GPIO_PIN_NUM_1;
-	IRSensor_Conf.GPIO_PinMode=GPIO_MODE_INPUT;
-	IRSensor_Conf.GPIO_PUPD=GPIO_NO_PUPD;
-	IRSensor_Conf.GPIO_EdgeTrigger=GPIO_IT_EDGE_RT;
-    GPIOA_CLK_ENB();
-    GPIO_Init(GPIOA,IRSensor_Conf);
-    GPIO_IT_Init(GPIOA,IRSensor_Conf,1);
-
-}
-
-
 void TIM6_Init()
 {
 	TIM6_BaseConf.Period=999;
@@ -172,6 +164,10 @@ void TIM6_Init()
 	//NVIC_EnableIRQ(IRQ_NO_TIM6);
 }
 
+/**
+ * @brief Function to Initialize TIM7 for generating time delays or PWM signals.
+ * This function configures the TIM7 parameters and enables the clock.
+ */
 void TIM7_Init()
 {
 	TIM_Base_InitTypeDef TIM7_BaseConf;
@@ -184,32 +180,59 @@ void TIM7_Init()
 	//NVIC_EnableIRQ(IRQ_NO_TIM6);
 }
 
+/**
+ * @brief Function to initialize the interrupt for TIM7.
+ * This function initializes the interrupt for TIM7.
+ */
 void TIM7_IT_Init()
 {
 	TIM_Base_IT_Init(TIM7,1U); 
 }
 
+
+/**
+ * @brief Function to start TIM7.
+ * This function starts TIM7, allowing it to begin counting and generating interrupts.
+ */
 void TIM7_Start()
 {
 	TIM_Base_Start(TIM7);
 }
 
+
+/**
+ * @brief Function to stop TIM7.
+ * This function stops TIM7, halting its counting and interrupt generation.
+ */
 void TIM7_Stop()
 {
 	TIM_Base_Stop(TIM7);
 }
 
-
+/**
+ * @brief Function to start TIM6.
+ * This function starts TIM6, allowing it to begin counting and generating interrupts.
+ */
 void TIM6_Start()
 {
 	TIM_Base_Start(TIM6);
 }
 
+
+/**
+ * @brief Function to stop TIM6.
+ * This function stops TIM6, halting its counting and interrupt generation.
+ */
 void TIM6_Stop()
 {
 	TIM_Base_Stop(TIM6);
 }
 
+
+/**
+ * @brief Function to initialize the interrupt for TIM6.
+ * This function initializes the interrupt for TIM6.
+ */
 void TIM6_IT_Init()
 {
 	TIM_Base_IT_Init(TIM6,1U); 
@@ -217,7 +240,10 @@ void TIM6_IT_Init()
 
 
 
-
+/**
+ * @brief Function to enable the FPU.
+ * This function enables the Floating Point Unit (FPU) for floating-point operations.
+ */
 static void FPU_Enable(void)
 {
     *(volatile uint32_t *)0xE000ED88U |= (0xFU << 20U);
@@ -236,11 +262,10 @@ static void FPU_Enable(void)
 int main(void)
 {
 	FPU_Enable();
-	//BlueLED_Init();
 	RingBuffer_Init(&RingBuffer);
 	USART2_Init();
-	//UserButton_Init();
 	USART3_Init();
+	BlueLED_Init();
 	NMEA_ResetParser(&nmea_parser);
 
 	TIM6_Init();
@@ -249,21 +274,15 @@ int main(void)
 
 	TIM7_Init();
 	TIM7_IT_Init();	
-	TIM7_Start();
+	
 
-	CAN_GPIO_Init(); 
-	CAN_Init();
+
 	
 	
 	
 	while(1)
 	{
 
-		if(ButtonEvent == TRUE)
-		{
-			ButtonEvent = FALSE;
-			USART_Transmit(USART2, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
-		}
 
 		uint8_t data;
 		if(RingBuffer_Get(&RingBuffer, &data))
@@ -282,31 +301,25 @@ int main(void)
 			{
 
 				GNSS_PrintPosition(USART3, &nmea_parser.data);
-				delay_ms(1000);
+				TIM7_Start();
+				/*Turn on Blue LED*/
+				GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
 				nmea_parser.isValid = FALSE; // Reset isValid after processing
+
+
 			}
 			else
 			{
 				//GNSS_PrintPosition(USART3, &nmea_parser.data);
 				USART_Transmit(USART3, (uint8_t *)tx_msg, sizeof(tx_msg) - 1U);
+
+				GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_14);
+				delay_ms(500);
+				GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_14);
 			}
 		}
 
-		if(isCANTransmitt==TRUE)
-		{
 
-
-			CAN_Message_t can_msg;
-			can_msg.id = 0x123; // Example ID
-			can_msg.dlc = 2;
-			can_msg.data[0] = 0xAB; // Example data
-			can_msg.data[1] = 0xCD; // Example data
-			// Send CAN message
-			CAN_SendMessage(CAN1, &can_msg);
-			
-			isCANTransmitt=FALSE;
-
-		}
 
 
 
@@ -316,15 +329,6 @@ int main(void)
 }
 
 
-/*
-void EXTI0_IRQHandler(void)
-{
-	
-	TIM6_Start();
-	EXTI->PR = (1U << 0U);
-	ButtonEvent = TRUE;
-}
-*/
 /**
  * @brief Service Routine for USART2 Interrupts. This function is called when an interrupt occurs on USART2.
  * 
@@ -365,13 +369,14 @@ void TIM7_IRQHandler(void)
 	{
 		TIM7_UEV_CLEAR();
 		Timer7Counter++;
-		if(Timer7Counter>=CAN_TRANSMIT_TIME)
+		if(Timer7Counter>=LED_TOGGLE_TIME)
 		{
 			Timer7Counter=0;
-			isCANTransmitt=TRUE;
+			GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_15);
+			TIM7_Stop();
 			
 		}
-		// Handle TIM7 interrupt
+		
 	}
 }
 

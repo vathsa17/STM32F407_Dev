@@ -208,8 +208,10 @@ typedef struct
 
 #define RX_BUFFER_SIZE 8U
 #define TX_BUFFER_SIZE 8U
+
 #define UART_TRANSMIT_TIME 1000U
 #define CAN_TRANSMIT_TIME 1000U
+#define LED_TOGGLE_TIME 500U
 
 uint32_t Get_PLLClk();
 uint32_t RCC_GetPCLK1Val();

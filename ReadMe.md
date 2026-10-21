@@ -1,104 +1,157 @@
-# STM32 Real-Time Sensor and Communication Platform
+# STM32F407G-DISCOVERY — GNSS NMEA Parser and UART Forwarding
 
-A hands-on embedded software project based on the STM32F407 microcontroller, focused on developing practical expertise in Embedded C, ARM Cortex-M architecture, peripheral drivers, real-time systems, communication, debugging, and embedded software architecture.
+**Version:** v1.1.0  
+**Platform:** STM32F407G-DISCOVERY  
+**Language:** Embedded C  
+**Architecture:** Bare-metal Superloop  
+**Status:** GNSS reception and UART forwarding implemented; CAN integration in progress.
 
-The project is being developed incrementally, starting from low-level peripheral control and progressing toward a modular, RTOS-based embedded system.
+## Overview
 
-## Project Goals
+This project demonstrates GNSS data acquisition, NMEA sentence parsing, interrupt-driven UART reception and serial data forwarding using the STM32F407G-DISCOVERY development board.
 
-The primary goal of this project is to build a complete embedded software platform on the STM32F407 while developing a deeper understanding of how embedded software interacts with microcontroller hardware.
+A GNSS receiver transmits NMEA sentences to the STM32 over UART2. The microcontroller stores incoming bytes in a ring buffer, processes the data byte by byte, validates and parses NMEA sentences, and extracts relevant information such as latitude, longitude, altitude, fix status and the number of satellites.
 
-The project focuses on:
+The parsed information is transmitted to a PC or another device through UART3. The on-board blue LED provides visual feedback by turning on briefly when a valid NMEA sentence has been received and parsed successfully.
 
-- Embedded C and low-level programming
-- ARM Cortex-M4 architecture
-- STM32F407 peripherals
-- Memory-mapped I/O and peripheral registers
-- GPIO and interrupt handling
-- UART, I2C and SPI communication
-- Timers and PWM
-- DMA
-- Peripheral driver development
-- FreeRTOS and real-time systems
-- Inter-task communication and synchronization
-- State machines
-- Error handling and diagnostics
-- Watchdog implementation
-- Embedded software architecture
-- Hardware debugging
-- Unit and integration testing
-- Git-based software development and documentation
+## System Architecture
 
-The long-term objective is to develop software using engineering practices representative of professional embedded systems.
+![STM32F407 GNSS NMEA Parser and UART Forwarding System](./docs/images/gnss-uart-forwarding.png)
 
-## Current Status
-
-The project currently includes:
-
-- STM32F407 development environment
-- GPIO configuration
-- LED control
-- Push button GPIO input
-- UART initialization
-- UART transmission from STM32 to PC
-- UART reception from PC to STM32
-- Bidirectional PC-to-STM32 UART communication
-- Interrupt Control for Push Button and UART Reception
-- Timer Features added and LED Blinking with Timers
-- GNSS Signals are being received on UART2 and Processed using RingBuffer
-
-
-The current implementation provides the foundation for progressively developing reusable drivers and a larger embedded software architecture.
-
-## Current Hardware
-
-### Microcontroller
-
-- STM32F407
-- ARM Cortex-M4
-- STM32 development board
-
-
-### Currently Used Peripherals
-
-- GPIO
-- Push button
-- LED
-- USART/UART
-- USB-TTL RS232 
-- GNSS Reciever 
-
-### PC Communication
-
-UART is currently used as the communication interface between the STM32 and a PC.
-
-The current communication path is:
+### Data Flow
 
 ```text
-PC
- |
- | UART (via USB-TTL RS232)
- |
-STM32F407
- |
- +-- GPIO
+GNSS Receiver
      |
-     +-- Push Button
+     | NMEA sentences @ 9600 baud
+     v
+   UART2
      |
-     +-- LED
+     v
+UART2 Interrupt Handler
+     |
+     v
+   Ring Buffer
+     |
+     v
+  NMEA Parser
+     |
+     v
+GNSS Data Structure
+     |
+     +----> Blue LED Status Indication
+     |
+     +----> UART3 Transmission @ 9600 baud
+                       |
+                       v
+                  PC / Terminal
 ```
 
-## Coming Soon
+## Features
 
-- CAN Drivers
-- CAN Tx/Rx using CAN Transciever and USB-CAN Adapter (with a Scapy script or Python-CAN Script)
+- **UART communication:** UART2 receives GNSS data, while UART3 forwards parsed information to the PC.
+- **Interrupt-driven reception:** Incoming UART data is handled through an interrupt service routine.
+- **Ring buffer:** Circular buffering decouples byte reception from sentence processing.
+- **NMEA parsing:** Processes incoming data byte by byte, validates sentences and extracts relevant GNSS information.
+- **Status indication:** The blue LED turns on briefly following successful sentence parsing.
+- **Timer-based operations:** TIM6 and TIM7 are used for periodic timing operations in the application.
+- **Bare-metal architecture:** The application currently uses a superloop without an RTOS.
 
-## About Me
+## UART Configuration
 
-I am a Senior Embedded and Automotive Software Engineer with 9+ years of experience in automotive software development, ECU integration, validation, embedded communication, and real-time systems.
+| Parameter | UART2 — GNSS Input | UART3 — PC Output |
+|---|---|---|
+| Baud rate | 9600 bps | 9600 bps |
+| Data bits | 8 | 8 |
+| Parity | None | None |
+| Stop bits | 1 | 1 |
+| Reception | Interrupt-driven | — |
+| Purpose | Receive NMEA sentences | Transmit parsed GNSS data |
 
-My professional experience includes Embedded C/C++, AUTOSAR, RTOS-based systems, SOME/IP, DoIP, UDS, CAN, V2X, and embedded Linux.
+## Example Output
 
-This project is focused on strengthening my hands-on embedded software development skills, particularly at the microcontroller and driver level. It provides a practical environment to work with ARM Cortex-M, STM32 peripherals, Embedded C, real-time systems, hardware interfaces, debugging, and embedded software architecture.
+The following is an example of the data transmitted to the PC through UART3:
 
-The long-term goal is to combine my existing automotive system and integration experience with deeper low-level embedded software expertise.
+```text
+Lat: 48.715504
+Lon: 11.504339
+Alt: 374.500000 m
+Fix: 1
+Sat: 9
+```
+
+The output represents the parsed GNSS latitude, longitude, altitude, fix status and satellite count.
+
+*Note: These values are an example captured from the implementation, not guaranteed live readings.*
+
+## Implementation Details
+
+### 1. UART Reception and Interrupt Handling
+
+UART2 is configured to receive data from the GNSS receiver. The interrupt handler performs minimal processing and stores incoming bytes in the ring buffer, allowing the application to process the data separately.
+
+### 2. Ring Buffer
+
+The ring buffer provides a circular storage mechanism for incoming UART data. It decouples asynchronous byte reception from NMEA parsing and helps prevent data loss when processing takes longer than receiving individual bytes.
+
+Correct buffer sizing, overflow detection and synchronization between the interrupt handler and application code are important for reliable operation.
+
+### 3. NMEA Parser
+
+The parser processes incoming bytes incrementally, identifies sentence boundaries, validates supported NMEA sentences and extracts relevant fields.
+
+The extracted data is stored in a GNSS data structure for use by the application and communication interfaces.
+
+### 4. LED Status Indication
+
+The on-board blue LED provides visual feedback when a valid NMEA sentence has been parsed successfully.
+
+### 5. Timer-Based Operations
+
+TIM6 and TIM7 are used for periodic timing operations, including scheduled communication activities in the application. These mechanisms provide a foundation for extending the system with additional communication and processing tasks.
+
+## What I Learned
+
+### UART Communication
+
+- Configuring UART peripherals and their associated GPIO alternate functions.
+- Setting baud rates and serial communication parameters.
+- Implementing interrupt-driven reception on an STM32 microcontroller.
+- Separating interrupt handling from application-level processing.
+
+### Ring Buffer Implementation
+
+- Managing continuous incoming data using circular buffers.
+- Decoupling data acquisition from processing.
+- Understanding buffer overflow, producer-consumer behavior and shared data between interrupt and application contexts.
+
+### NMEA Sentence Parsing
+
+- Processing structured serial data incrementally.
+- Identifying sentence boundaries and validating incoming data.
+- Extracting latitude, longitude, altitude, fix status and satellite information.
+- Handling communication data independently of the transport layer.
+
+### Timers and Application Scheduling
+
+- Configuring STM32 timers for periodic operations.
+- Separating timing requirements from data acquisition and parsing.
+- Understanding the limitations of scheduling activities using a bare-metal superloop.
+
+## Current Architecture and Future Work
+
+The firmware currently runs in **bare-metal Superloop mode**. FreeRTOS has not yet been integrated.
+
+Planned enhancements include:
+
+- Complete and validate CAN driver functionality.
+- Transmit selected GNSS information over the CAN bus.
+- Improve ring-buffer overflow handling and communication error recovery.
+- Add unit tests for the NMEA parser and other testable software modules.
+- Introduce FreeRTOS tasks, queues and synchronization primitives.
+- Integrate an additional physical sensor through I²C or SPI.
+- Add structured logging, fault handling and watchdog supervision.
+
+## Project Goal
+
+This implementation is part of a broader STM32 Real-Time Sensor and Communication Platform intended to explore embedded C, peripheral driver development, interrupt handling, communication protocols, real-time software architecture and systematic verification on real hardware.
