@@ -16,7 +16,7 @@ The parsed information is transmitted to a PC or another device through UART3. T
 
 ## System Architecture
 
-![STM32F407 GNSS NMEA Parser and UART Forwarding System](./docs/images/gnss-uart-forwarding.png)
+![STM32F407 GNSS NMEA Parser and UART Forwarding System](./Docs/images/gnss-uart-forwarding.png)
 
 ### Data Flow
 
