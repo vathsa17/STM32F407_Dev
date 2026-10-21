@@ -11,7 +11,7 @@ This project demonstrates UART communication, push-button input handling, and on
 
 ### System Overview
 
-![STM32F407G-DISCOVERY UART, Push Button and LED Demo](./docs/images/uart-button-led-demo.png)
+![STM32F407G-DISCOVERY UART, Push Button and LED Demo](./Docs/Images/uart-button-led-demo.png)
 
 ### UART Configuration
 
