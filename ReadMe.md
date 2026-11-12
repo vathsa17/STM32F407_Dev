@@ -1,157 +1,105 @@
-# STM32F407 Embedded Systems Development
+# STM32F407 – FreeRTOS GNSS-to-CAN Gateway
 
-A hands-on embedded software development project based on the **STM32F407 microcontroller**, focusing on register-level peripheral drivers, embedded C, real-time operating systems, communication protocols, and modular firmware architecture.
+## 1. Overview
 
-The project is developed incrementally, with the goal of building a reusable embedded software platform that demonstrates practical microcontroller programming and real-time embedded software engineering.
+This branch implements a FreeRTOS-based GNSS-to-CAN communication application running on the STM32F407 microcontroller.
 
-## 1. Project Overview
+The application receives GNSS data over USART2, processes the incoming NMEA sentences using a custom GNSS parser, and forwards the extracted GNSS information through the CAN1 peripheral.
 
-**Target platform:** STM32F407  
-**Development board:** STM32F407G-Discovery  
-**Programming language:** Embedded C  
-**IDE:** STM32CubeIDE  
-**Architecture:** ARM Cortex-M4 with FPU  
-**RTOS:** FreeRTOS  
-**Version control:** Git / GitHub
+The project also introduces a migration from a traditional superloop-based architecture towards a FreeRTOS-based application structure.
 
-### Main objectives
+### Key Features
 
-- Understand ARM Cortex-M4 architecture and STM32 peripherals.
-- Develop reusable peripheral drivers using register-level programming.
-- Implement UART, GPIO, CAN and GNSS communication functionality.
-- Integrate FreeRTOS for multitasking and real-time execution.
-- Develop modular, maintainable and testable embedded software.
-- Build practical experience in debugging and firmware development.
+- FreeRTOS integration on ARM Cortex-M4F.
+- Custom register-level STM32 peripheral drivers.
+- GNSS data reception through USART2.
+- NMEA sentence parsing and GNSS data extraction.
+- CAN1 peripheral initialization and message transmission.
+- Modular application and driver architecture.
+- Python-based GNSS data simulator for testing.
 
-## 2. Repository Branches
+## 2. Hardware Platform
 
-| Branch | Purpose |
+| Component | Description |
 |---|---|
-| `master` | Stable baseline |
-| `develop` | Development integration |
-| `feature/uart-demo` | UART demonstration |
-| `feature/gnss-uart-forwarding` | GNSS UART parsing and forwarding |
-| `feature/freertos-migration` | FreeRTOS integration and driver migration |
+| Microcontroller | STM32F407 |
+| CPU | ARM Cortex-M4F |
+| Development board | STM32F407G-Discovery |
+| RTOS | FreeRTOS |
+| GNSS interface | USART2 |
+| CAN interface | CAN1 |
+| CAN transceiver | External CAN transceiver |
+| Development IDE | STM32CubeIDE |
+| Language | Embedded C |
 
-The current development focus is `feature/freertos-migration`.
+### Peripheral Configuration
 
-## 3. Hardware and Software Architecture
+**USART2 – GNSS Reception**
 
-### Hardware
+USART2 is used to receive GNSS NMEA data from an external GNSS source or a Python-based GNSS simulator.
 
-- STM32F407 microcontroller
-- ARM Cortex-M4 core with floating-point unit
-- Onboard GPIO LEDs and push button
-- UART interface for PC communication
-- CAN transceiver for CAN bus communication
-- External GNSS data source
+**CAN1 – GNSS Data Transmission**
 
-### Software architecture
+CAN1 is used to transmit the processed GNSS information to an external CAN network through a CAN transceiver.
 
-The firmware follows a modular, layered architecture.
+CAN1 GPIO configuration:
+- PB8 – CAN1_RX
+- PB9 – CAN1_TX
+
+An external CAN transceiver is required to interface the STM32 CAN peripheral with the physical CAN bus.
+
+## 3. System Architecture
 
 ```text
-+--------------------------------------+
-|           Application Layer          |
-|                                      |
-|  Main Application / Application Tasks|
-|  GNSS Processing / State Management  |
-+--------------------------------------+
-                   |
-+--------------------------------------+
-|          Middleware Layer            |
-|                                      |
-|              FreeRTOS                |
-|       Tasks / Queues / Scheduling    |
-+--------------------------------------+
-                   |
-+--------------------------------------+
-|           Driver Layer               |
-|                                      |
-| GPIO | USART | CAN | GNSS | Utils    |
-+--------------------------------------+
-                   |
-+--------------------------------------+
-|       STM32F407 Hardware             |
-|                                      |
-| GPIO | USART | CAN | Timers | RCC    |
-+--------------------------------------+
-                   |
-+--------------------------------------+
-|          Physical Interfaces         |
-|                                      |
-|       UART | CAN | GPIO Signals      |
-+--------------------------------------+
+             GNSS DATA SOURCE
+                    |
+                    | NMEA Sentences
+                    |
+                    v
+             +-------------+
+             |   USART2    |
+             | UART Driver |
+             +-------------+
+                    |
+                    v
+             +-------------+
+             | GNSS Parser |
+             |             |
+             | NMEA Parsing|
+             | Checksum    |
+             | Validation  |
+             +-------------+
+                    |
+                    v
+             +-------------+
+             | GNSS Data   |
+             | Structure   |
+             +-------------+
+                    |
+                    v
+             +-------------+
+             | CAN1 Driver |
+             |             |
+             | CAN Payload |
+             | Preparation |
+             | Transmission|
+             +-------------+
+                    |
+                    v
+             +-------------+
+             | CAN         |
+             | Transceiver |
+             +-------------+
+                    |
+                    v
+               CAN NETWORK
 ```
 
-## 4. Implemented Functionality
+### GNSS Data Structure
 
-### 4.1 GPIO Driver
-
-A custom GPIO driver provides access to STM32 GPIO peripherals.
-
-Implemented functionality includes:
-
-- GPIO initialization.
-- Input and output configuration.
-- Output type configuration.
-- Pull-up and pull-down configuration.
-- GPIO output control.
-- GPIO input reading.
-- Alternate-function configuration.
-
-### 4.2 UART Communication
-
-USART2 is used for bidirectional communication between the STM32 and a PC.
-
-Configuration:
-- Peripheral: USART2
-- Baud rate: 9600
-- Frame format: 8-N-1
-
-Implemented functionality:
-
-- UART initialization.
-- UART transmission.
-- UART reception.
-- Interrupt-based receive handling.
-- Communication between the STM32 and a PC.
-
-Demonstration:
-
-- Pressing the onboard button sends `Button Pressed` to the PC.
-- Sending `LED_ON` from the PC switches on the onboard blue LED.
-- Sending `LED_OFF` switches off the onboard blue LED.
-
-### 4.3 GNSS / NMEA Parser
-
-A custom GNSS driver processes NMEA data received through UART.
-
-The parser maintains its internal state and extracts GNSS information into structured data.
-
-Supported data fields include:
-
-- UTC time
-- Latitude
-- Longitude
-- Fix quality
-- Number of satellites
-- Altitude
-- HDOP
-- Geoidal separation
-
-The parser uses a structured data model:
+The parser extracts GNSS information into the following data structure:
 
 ```c
-typedef struct
-{
-    uint8_t hours;
-    uint8_t minutes;
-    uint8_t seconds;
-    uint16_t milliseconds;
-
-} UTCTime_t;
-
 typedef struct
 {
     UTCTime_t utc_time;
@@ -166,69 +114,131 @@ typedef struct
 } GNSS_Data_t;
 ```
 
-A Python-based GNSS simulator (`PyScripts/fake_gnss.py`) is also included for development and testing without requiring a physical GNSS receiver.
+The extracted GNSS information is used by the application for CAN message preparation and transmission.
 
-### 4.4 CAN Communication
+## 4. FreeRTOS Integration
 
-A custom CAN driver has been added for STM32F407 CAN peripheral communication.
+This branch introduces FreeRTOS as the application execution environment.
 
-Implemented development activities include:
-
-- CAN peripheral configuration.
-- CAN GPIO alternate-function configuration.
-- CAN message transmission.
-- CAN communication testing using an external CAN transceiver.
-
-**Hardware interface:** CAN1 using PB8 and PB9 with an external CAN transceiver.
-
-The GNSS data structure provides latitude and longitude information for integration with CAN messaging.
-
-### 4.5 FreeRTOS Integration
-
-The project is being migrated from a superloop-based execution model towards a real-time multitasking architecture.
-
-The FreeRTOS kernel is included in the repository.
-
-Integrated components:
+### Integrated Components
 
 - FreeRTOS kernel.
 - ARM Cortex-M4F GCC port.
-- FreeRTOS heap implementation (`heap_4.c`).
+- FreeRTOS heap management using `heap_4.c`.
 - FreeRTOS configuration.
 - Application task module.
 
-Relevant files:
+### FreeRTOS Directory Structure
 
 ```text
 FreeRTOS/
+│
+├── include/
+│
+├── portable/
+│   ├── GCC/
+│   │   └── ARM_CM4F/
+│   │       ├── port.c
+│   │       └── portmacro.h
+│   │
+│   └── MemMang/
+│       └── heap_4.c
+│
 ├── event_groups.c
 ├── list.c
 ├── queue.c
 ├── stream_buffer.c
 ├── tasks.c
-├── timers.c
-├── include/
-├── portable/
-│   ├── GCC/
-│   │   └── ARM_CM4F/
-│   └── MemMang/
-│       └── heap_4.c
+└── timers.c
 ```
 
-Application-specific configuration and task definitions:
+### Application RTOS Files
 
 ```text
 Inc/
-├── FreeRTOSConfig.h
+└── FreeRTOSConfig.h
 └── app_tasks.h
 
 Src/
 └── app_task.c
 ```
 
-The migration establishes the foundation for separating peripheral processing and application functionality into independently scheduled tasks.
+The application task module provides the separation between RTOS configuration and application execution logic.
 
-## 5. Project Structure
+## 5. Software Architecture
+
+The firmware is organized into three primary software layers.
+
+### Application Layer
+
+Responsible for application-level functionality:
+
+- Application initialization.
+- GNSS processing.
+- CAN data forwarding.
+- Application task management.
+
+Files:
+
+```text
+Src/
+├── main.c
+└── app_task.c
+
+Inc/
+└── app_tasks.h
+```
+
+### Driver Layer
+
+Contains custom peripheral drivers implemented for the STM32F407.
+
+| Driver | Responsibility |
+|---|---|
+| GPIO | GPIO configuration and control |
+| USART | UART communication |
+| GNSS | NMEA parsing and GNSS data extraction |
+| CAN | CAN peripheral configuration and communication |
+| Utils | Common utility functions |
+
+Files:
+
+```text
+Inc/
+├── stm32f407xx_gpio_driver.h
+├── stm32f407xx_usart_driver.h
+├── stm32f407xx_gnss_driver.h
+├── stm32f407xx_can_driver.h
+└── utils.h
+
+Src/
+├── stm32f407xx_gpio_driver.c
+├── stm32f407_usart_driver.c
+├── stm32f407xx_gnss_driver.c
+├── stm32f407xx_can_driver.c
+└── utils.c
+```
+
+### Hardware Abstraction
+
+CMSIS device headers provide the STM32F407 peripheral register definitions and Cortex-M core access.
+
+## 6. GNSS Simulation
+
+A Python script is provided to simulate GNSS data reception without requiring a physical GNSS receiver.
+
+Location:
+
+```text
+PyScripts/
+└── fake_gnss.py
+```
+
+The script acts as a GNSS data source and sends simulated NMEA data to the STM32 through the serial interface.
+
+This enables testing of the UART reception and GNSS parsing functionality.
+
+## 7. Repository Structure
 
 ```text
 STM32F407_Dev/
@@ -256,8 +266,6 @@ STM32F407_Dev/
 │   ├── stm32f407xx_gnss_driver.h
 │   ├── stm32f407xx_gpio_driver.h
 │   ├── stm32f407xx_usart_driver.h
-│   ├── stm32f4xx.h
-│   ├── system_stm32f4xx.h
 │   └── utils.h
 │
 ├── Src/
@@ -274,118 +282,79 @@ STM32F407_Dev/
 │   └── fake_gnss.py
 │
 ├── .cproject
-├── .project
-└── README.md
+└── .project
 ```
 
-## 6. Development Environment
+## 8. Development Environment
 
-### Required tools
+### Requirements
 
 - STM32CubeIDE
 - ARM GCC toolchain
-- Git
+- STM32F407 development board
+- ST-LINK debugger
+- USB-to-UART interface or GNSS serial source
+- External CAN transceiver
+- CAN analyzer or CAN interface
 - Python 3
-- Serial terminal application
-- CAN interface and transceiver for CAN testing
 
-### Building the firmware
-
-1. Clone the repository.
-2. Checkout the required development branch.
-3. Import the project into STM32CubeIDE.
-4. Verify the compiler and linker configuration.
-5. Build the project.
-6. Connect the STM32F407 development board.
-7. Flash the firmware using the ST-LINK debugger.
-
-Example:
+### Clone the Repository
 
 ```bash
 git clone https://github.com/vathsa17/STM32F407_Dev.git
 
 cd STM32F407_Dev
+```
 
+### Checkout This Branch
+
+```bash
 git checkout feature/freertos-migration
 ```
 
-Build and flash using STM32CubeIDE.
+### Build and Flash
 
-## 7. Testing and Debugging
+1. Open STM32CubeIDE.
+2. Import the project as an existing STM32CubeIDE project.
+3. Select the appropriate build configuration.
+4. Build the firmware.
+5. Connect the STM32F407 board through ST-LINK.
+6. Flash and debug the application.
 
-Testing is performed incrementally using hardware and software tools.
+## 9. Current Development Scope
 
-| Component | Testing approach |
+The main objective of this branch is to establish a FreeRTOS-based GNSS-to-CAN gateway.
+
+| Feature | Implementation |
 |---|---|
-| GPIO | LED and push-button testing |
-| UART | PC-to-STM32 bidirectional communication |
-| GNSS | Simulated NMEA input |
-| CAN | CAN transmission with external transceiver |
-| FreeRTOS | Application task execution and debugging |
+| STM32F407 platform | Integrated |
+| CMSIS device support | Integrated |
+| FreeRTOS kernel | Integrated |
+| FreeRTOS ARM Cortex-M4F port | Integrated |
+| GPIO driver | Integrated |
+| USART2 driver | Integrated |
+| GNSS NMEA parser | Integrated |
+| CAN1 driver | Integrated |
+| Python GNSS simulator | Added |
+| GNSS-to-CAN forwarding | Application functionality |
+| Advanced RTOS synchronization | Future development |
 
-Python scripts are used to simulate external communication sources where appropriate.
+## 10. Future Improvements
 
-## 8. Development Roadmap
-
-The following capabilities are planned for further development.
-
-### Peripheral Drivers
-
-- [ ] Timer driver and PWM generation
-- [ ] I2C driver
-- [ ] SPI driver
-- [ ] ADC driver
-- [ ] DMA-based peripheral communication
-- [ ] Non-blocking UART driver
-
-### Real-Time Systems
-
-- [ ] Multiple application tasks
-- [ ] Task synchronization
-- [ ] Queue-based inter-task communication
-- [ ] Mutexes and semaphores
-- [ ] Interrupt-to-task communication
-- [ ] Task priority and scheduling analysis
-- [ ] Stack monitoring
-- [ ] Watchdog integration
-
-### Communication
-
-- [ ] GNSS-to-CAN message integration
-- [ ] CAN reception and message filtering
-- [ ] CAN message decoding
-- [ ] Communication error handling
-- [ ] UART ring-buffer implementation and testing
-
-### Software Architecture and Quality
-
-- [ ] State-machine-based application design
-- [ ] Centralized error handling
-- [ ] Logging framework
-- [ ] Unit testing
-- [ ] Hardware integration testing
-- [ ] Static code analysis
-- [ ] Firmware documentation
-
-## 9. Long-Term Project Goal
-
-The long-term objective is to evolve this repository into a reusable **STM32 Real-Time Sensor and Communication Platform**.
-
-The final system will combine:
-
-- STM32F407 peripheral drivers
-- Sensor data acquisition
-- GNSS processing
-- CAN and UART communication
-- FreeRTOS multitasking
-- Real-time scheduling and synchronization
-- Error handling and watchdog supervision
-- Modular and reusable embedded software components
-
-The project is intended to demonstrate practical embedded software engineering skills, from register-level hardware access to real-time application architecture.
+- Introduce queue-based communication between GNSS processing and CAN transmission.
+- Improve non-blocking UART reception.
+- Implement robust UART ring-buffer handling.
+- Introduce dedicated communication and application tasks.
+- Add CAN reception and message filtering.
+- Improve GNSS validity and error handling.
+- Add communication timeout monitoring.
+- Integrate watchdog supervision.
+- Implement unit tests for GNSS parsing and CAN payload encoding.
 
 ---
 
-**Repository:** https://github.com/vathsa17/STM32F407_Dev
+**Branch:** `feature/freertos-migration`
 
-**Current development branch:** `feature/freertos-migration`
+**Platform:** STM32F407 / ARM Cortex-M4F
+
+**Primary functionality:** GNSS UART2 reception and CAN1 forwarding using FreeRTOS.
