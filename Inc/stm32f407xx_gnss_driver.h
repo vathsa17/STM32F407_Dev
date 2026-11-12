@@ -72,5 +72,8 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte);
 
 void ProcessNMEASentence(NMEA_Parser_t *parser);
 
+
+
+
 #include "stm32f407xx.h"
 #endif /* STM32F407XX_GNSS_DRIVER_H_ */

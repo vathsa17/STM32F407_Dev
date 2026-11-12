@@ -21,6 +21,8 @@ typedef struct{
 	uint8_t GPIO_EdgeTrigger;
 }GPIO_PinConf_t;
 
+
+
 #define GPIO_IT_EDGE_FT 0U
 #define GPIO_IT_EDGE_RT 1U
 #define GPIO_IT_EDGE_RFT 2U
@@ -110,13 +112,13 @@ typedef enum
 											((PinNumber>=5U)&&(PinNumber<=9U))?EXTI_NO_9_5 :\
 													((PinNumber>=10U)&&(PinNumber<=15U))?EXTI_NO_10_15 :EXTI_NO_10_15)
 
-void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf);
-void GPIO_WritePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState);
-void GPIO_TogglePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber);
-uint8_t GPIO_ReadPin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber);
-void GPIO_WritePinBit(GPIO_RegDef_t * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState);
-void GPIO_LockPinConf(GPIO_RegDef_t * GPIOx,uint8_t PinNumber);
-void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Priority);
+void GPIO_Init(GPIO_TypeDef * GPIOx, GPIO_PinConf_t GPIOPinConf);
+void GPIO_WritePin(GPIO_TypeDef * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState);
+void GPIO_TogglePin(GPIO_TypeDef * GPIOx,uint8_t PinNumber);
+uint8_t GPIO_ReadPin(GPIO_TypeDef * GPIOx,uint8_t PinNumber);
+void GPIO_WritePinBit(GPIO_TypeDef * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState);
+void GPIO_LockPinConf(GPIO_TypeDef * GPIOx,uint8_t PinNumber);
+void GPIO_IT_Init(GPIO_TypeDef * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Priority);
 
 
 #endif

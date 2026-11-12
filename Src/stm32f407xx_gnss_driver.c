@@ -1,4 +1,7 @@
 #include "stm32f407xx.h" 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
 #define MAX_FIELDS       20
 #define MAX_FIELD_LENGTH 20
@@ -81,7 +84,8 @@ uint8_t HexToValue(char c)
 
 void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
 {
-    switch (parser->state)
+
+	switch (parser->state)
     {
         case WAIT_START:
 
@@ -91,6 +95,7 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
                         parser->field_index = 0;
                         parser->temp_index = 0;
                         parser->calculated_checksum = 0;
+                        Logger_SendString("Parse Bytes: Begining Recieved");
                     }
 
                     break;
@@ -137,6 +142,7 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
                     /*
                     * Receive two hexadecimal characters here.
                     */
+
                     if (byte == '\r')
                     {
                         // optionally wait for '\n'
@@ -160,6 +166,8 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
                                     if (strcmp(parser->fields[0], "GNGGA") == 0)
                                     {
                                         ParseGGA(parser);
+                                        Logger_SendString("\r\nParsingGNGGA");
+
                                         
                                     }
                                     else if (strcmp(parser->fields[0], "GNGSA") == 0)
@@ -180,6 +188,7 @@ void NMEA_ParseByte(NMEA_Parser_t *parser, uint8_t byte)
                             {
                                 /* Checksum error */
                             	parser->isValid=FALSE;
+                            	Logger_SendString("\r\nChecksum Not Matching");
                             }
 
                             NMEA_ResetParser(parser);
@@ -215,8 +224,7 @@ void ParseGGA(NMEA_Parser_t *parser)
 
     if (parser->fields[2][0] != '\0' && parser->fields[4][0] != '\0')
     {
-
-       parser->isValid=TRUE;
+        parser->isValid=TRUE;
         data->latitude =NMEA_ConvertLatitude(parser->fields[2], parser->fields[3][0]);
         data->longitude =NMEA_ConvertLongitude(parser->fields[4], parser->fields[5][0]);
     	//data->latitude = 37.387458f;
@@ -239,6 +247,7 @@ void ParseGGA(NMEA_Parser_t *parser)
         // parser->fields[10] -> Altitude Units (M)
 
         //data->geoidal_separation = (float)atof(parser->fields[11]);
+        GPIO_TogglePin(GPIOD,GPIO_PIN_NUM_14);
     }
     else
     {
@@ -280,3 +289,5 @@ void ParseGSA(NMEA_Parser_t *parser)
     * 17: VDOP
     */
 }  
+
+

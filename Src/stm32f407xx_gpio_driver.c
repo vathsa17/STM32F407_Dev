@@ -6,14 +6,14 @@
  */
 
 #include "stm32f407xx.h"
-#include "cortexM4.h"
+//#include "cortexM4.h"
 /**
  * @brief This function initilizes the GPIO peripheral according to desiered configu
  *
  * @param GPIOx Desired GPIO Port
  * @param GPIOPinConf Desire GPIO Port Config
  */
-void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf)
+void GPIO_Init(GPIO_TypeDef * GPIOx, GPIO_PinConf_t GPIOPinConf)
 {
 
 	GPIOx->MODER &= ~(0x03<< (GPIOPinConf.GPIO_PinNumber * 2));
@@ -36,13 +36,13 @@ void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf)
 	{
 		if (GPIOPinConf.GPIO_PinNumber <8)
 		{
-			GPIOx->AFRL &= ~(0x0F << GPIOPinConf.GPIO_PinNumber*4);
-			GPIOx->AFRL |= (GPIOPinConf.GPIO_AltFnc  << GPIOPinConf.GPIO_PinNumber * 4);
+			GPIOx->AFR[0] &= ~(0x0F << GPIOPinConf.GPIO_PinNumber*4);
+			GPIOx->AFR[0] |= (GPIOPinConf.GPIO_AltFnc  << GPIOPinConf.GPIO_PinNumber * 4);
 		}
 		else
 		{
-			GPIOx->AFRH &= ~(0x0F << (GPIOPinConf.GPIO_PinNumber-8)*4);
-			GPIOx->AFRH |= (GPIOPinConf.GPIO_AltFnc << (GPIOPinConf.GPIO_PinNumber-8) * 4);
+			GPIOx->AFR[1] &= ~(0x0F << (GPIOPinConf.GPIO_PinNumber-8)*4);
+			GPIOx->AFR[1] |= (GPIOPinConf.GPIO_AltFnc << (GPIOPinConf.GPIO_PinNumber-8) * 4);
 		}
 	}
 }
@@ -54,7 +54,7 @@ void GPIO_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf)
  * @param PinNumber Desired GPIO Pin
  * @param PinState Desired GPIO Pin State
  */
-void GPIO_WritePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState)
+void GPIO_WritePin(GPIO_TypeDef * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinState)
 {
 
 	if (PinState == GPIO_PIN_LOW)
@@ -74,7 +74,7 @@ void GPIO_WritePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber, GPIO_PinState_e PinS
  * @param PinNumber The Pin Number in the Port
  * @return uint8_t Returns the current Pin Value
  */
-uint8_t GPIO_ReadPin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
+uint8_t GPIO_ReadPin(GPIO_TypeDef * GPIOx,uint8_t PinNumber)
 {
 	return  (GPIOx->IDR>>PinNumber)& 0x01;
 }
@@ -86,7 +86,7 @@ uint8_t GPIO_ReadPin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
  * @param GPIOx Desired GPIO Port
  * @param PinNumber The Pin Number in the Port
  */
-void GPIO_TogglePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
+void GPIO_TogglePin(GPIO_TypeDef * GPIOx,uint8_t PinNumber)
 {
 
 
@@ -101,7 +101,7 @@ void GPIO_TogglePin(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
  * @param GPIOx Desired GPIO Port
  * @param PinNumber The Pin Number in the Port
  */
-void GPIO_LockPinConf(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
+void GPIO_LockPinConf(GPIO_TypeDef * GPIOx,uint8_t PinNumber)
 {
 	/*
 	 * Steps to Lock you GPIO Pin Config
@@ -117,12 +117,10 @@ void GPIO_LockPinConf(GPIO_RegDef_t * GPIOx,uint8_t PinNumber)
 
 }
 
-/**
- * @brief Initilizes the interrupt for the specified GPIO Pin
- *
- */
+/*
 
-void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Priority)
+
+void GPIO_IT_Init(GPIO_TypeDef * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Priority)
 {
 	SYSCFG_CLK_ENB();
 
@@ -163,3 +161,5 @@ void GPIO_IT_Init(GPIO_RegDef_t * GPIOx, GPIO_PinConf_t GPIOPinConf,uint8_t Prio
 	NVIC_SetPriority(GPIO_PIN_TO_IRQ(GPIOPinConf.GPIO_PinNumber),Priority);
 	NVIC_EnableIRQ(GPIO_PIN_TO_IRQ(GPIOPinConf.GPIO_PinNumber));
 }
+
+*/

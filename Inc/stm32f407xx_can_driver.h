@@ -12,31 +12,18 @@
 
 #include "stm32f407xx.h"
 
-#define CAN_MCR_INRQ_Pos    0U
-#define CAN_MCR_INRQ        (1U << CAN_MCR_INRQ_Pos)
 
-#define CAN_MSR_INAK_Pos    0U
-#define CAN_MSR_INAK        (1U << CAN_MSR_INAK_Pos)
 
 #define CAN_PRESCALER 2U
-#define CAN_TS1 11
-#define CAN_TS2 4
+#define CAN_TS1 13
+#define CAN_TS2 2
 #define CAN_SJW 1
 #define CAN_TS1_SHIFT 16U
 #define CAN_TS2_SHIFT 20U
 #define BRP_SHIFT 0U
 #define CAN_SJW_SHIFT 24U
 
-#define CAN_TSR_TME0 1U<<26U
-#define CAN_TSR_TME1 1U<<27U
-#define CAN_TSR_TME2 1U<<28U
 
-#define CAN_TXOK1 1U<<9U
-#define CAN_TXOK0 1U<<1U
-#define CAN_TXOK2 1U<<17U
-#define CAN_TXERR2 1U<<19U
-#define CAN_TXERR0 1U<<3U
-#define CAN_TXERR1 1U<<11U
 typedef enum
 {
     CAN_OK,
@@ -93,10 +80,6 @@ typedef struct
 	volatile uint32_t CAN_F1R1;        // 0x248
 	volatile uint32_t CAN_F1R2;        // 0x24C
 
-
-
-
-
 }CAN_RegDef_t;
 
 
@@ -108,6 +91,6 @@ typedef struct
 } CAN_Message_t;
 
 void CAN_Init(void);
-CAN_Status_t  CAN_ReadMessage(CAN_RegDef_t *CANx, CAN_Message_t *msg);
-CAN_Status_t  CAN_SendMessage(CAN_RegDef_t *CANx, const CAN_Message_t *msg);
+CAN_Status_t  CAN_ReadMessage(CAN_TypeDef  *CANx, CAN_Message_t *msg);
+CAN_Status_t  CAN_SendMessage(CAN_TypeDef  *CANx, const CAN_Message_t *msg);
 #endif /* STM32F407XX_CAN_DRIVER_H_ */
